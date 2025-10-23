@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-// Import Check icon
 import { ClipboardCopy, Trash2, Check } from "lucide-react";
 
 export default function Home() {
@@ -10,7 +9,6 @@ export default function Home() {
   const [resultText, setResultText] = useState<string | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(true);
-  // State for Copy Button visual feedback
   const [isCopied, setIsCopied] = useState(false);
 
   const handleLocalInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,17 +23,23 @@ export default function Home() {
     setResultText('');
     setErrorText(null);
     setShowResult(true);
-    setIsCopied(false); // Reset copied state
+    setIsCopied(false);
 
-    // ...(rest of fetch and stream reading logic)...
     try {
       const response = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: localInput })
       });
-      if (!response.ok) { /* ... error handling ... */ throw new Error(`API Error ${response.status}`); }
+
+      if (!response.ok) {
+          let errorDetails = `API Error: ${response.status} ${response.statusText}`;
+          try { const errorJson = await response.json(); errorDetails += ` - ${errorJson.error || 'No details'}`; }
+          catch { errorDetails += ` - ${await response.text()}`; }
+          throw new Error(errorDetails);
+      }
       if (!response.body) { throw new Error("API Error: Response body empty."); }
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       while (true) {
@@ -46,44 +50,42 @@ export default function Home() {
       }
       const finalChunk = decoder.decode();
       if (finalChunk) { setResultText((prev) => (prev ?? '') + finalChunk); }
-    } catch (error: any) {
-        console.error("Fetch API Error:", error);
-        setErrorText(`Failed to get response: ${error.message}`);
-        setResultText(null);
+
+    // --- ESLINT FIX HERE ---
+    } catch (error: unknown) { // Changed 'any' to 'unknown'
+      console.error("Fetch API Error:", error);
+      // Type check error before accessing properties
+      const message = error instanceof Error ? error.message : String(error);
+      setErrorText(`Failed to get response: ${message}`);
+      setResultText(null);
+    // --- END FIX ---
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
-  // --- UPDATED Copy Logic (No Alert) ---
   const handleCopy = () => {
     if (resultText && !isCopied) {
       navigator.clipboard.writeText(resultText)
         .then(() => {
-          setIsCopied(true); // Set copied state
-          // Reset after 2 seconds
+          setIsCopied(true);
           setTimeout(() => setIsCopied(false), 2000);
-          // REMOVED alert("Copied!")
         })
         .catch(err => {
           console.error('Copy failed:', err);
-          alert("Failed to copy. Check console."); // Keep error alert
+          alert("Failed to copy.");
         });
     }
   };
-  // --- END Copy Logic ---
 
-  const handleDelete = () => {
-    setShowResult(false);
-  };
+  const handleDelete = () => { setShowResult(false); };
 
   useEffect(() => {
     if (isLoading) {
        setShowResult(true);
-       setIsCopied(false); // Reset copied state
+       setIsCopied(false);
     }
   }, [isLoading]);
-
 
   return (
     <main className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
@@ -94,7 +96,6 @@ export default function Home() {
            <p className="text-lg text-gray-600 mb-8">
              Tell us about your trip...
            </p>
-           {/* ... (form with input and submit button remains the same) ... */}
            <form onSubmit={handleManualSubmit} className="flex flex-col gap-4">
              <input
                type="text" value={localInput} onChange={handleLocalInputChange}
@@ -111,38 +112,20 @@ export default function Home() {
 
         {/* Results Section */}
         <div className="mt-8 w-full max-w-2xl">
-          {/* Error Display */}
-          {errorText && ( <div className="bg-red-100 /*...*/"> Error: {errorText} </div> )}
-
-          {/* Result Display */}
+          {errorText && ( <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"> Error: {errorText} </div> )}
           {showResult && (resultText !== null || isLoading) && !errorText && (
             <div className="bg-gray-100 rounded-lg p-6 shadow-sm">
               <div className="flex justify-end gap-2 mb-4">
-                 {/* --- COPY BUTTON with Checkmark --- */}
-                 <button
-                    onClick={handleCopy}
-                    disabled={!resultText || isCopied} // Disable when copied
-                    title={isCopied ? "Copied!" : "Copy to clipboard"}
-                    aria-label={isCopied ? "Copied!" : "Copy to clipboard"}
-                    className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-all duration-200 disabled:opacity-50"
-                  >
-                   {/* Conditional Icon */}
-                   {isCopied ? (
-                      <Check size={20} className="text-green-600" />
-                   ) : (
-                      <ClipboardCopy size={20} />
-                   )}
+                 <button onClick={handleCopy} disabled={!resultText || isCopied} title={isCopied ? "Copied!" : "Copy"} aria-label={isCopied ? "Copied!" : "Copy"} className="p-2 text-gray-600 hover:bg-gray-200 rounded disabled:opacity-50">
+                   {isCopied ? <Check size={20} className="text-green-600" /> : <ClipboardCopy size={20} />}
                  </button>
-                 {/* --- END COPY BUTTON --- */}
-                 <button onClick={handleDelete} disabled={!resultText && !isLoading} title="Delete" aria-label="Delete" className="p-2 text-gray-600 hover:text-gray-900 disabled:opacity-50"> <Trash2 size={20} /> </button>
+                 <button onClick={handleDelete} disabled={!resultText && !isLoading} title="Delete" aria-label="Delete" className="p-2 text-gray-600 hover:bg-gray-200 rounded disabled:opacity-50"> <Trash2 size={20} /> </button>
               </div>
               <div className="whitespace-pre-wrap font-mono text-sm text-gray-800">
-                {resultText ? resultText : (isLoading ? "Generating..." : "Your packing list will appear here...")}
+                {resultText ? resultText : (isLoading ? "Generating..." : "Your packing list...")}
               </div>
             </div>
           )}
-
-          {/* Placeholder */}
           {!isLoading && !errorText && (resultText === null || !showResult) && (
              <div className="bg-gray-100 rounded-lg p-6 shadow-sm">
                <p className="text-gray-500 text-center italic">

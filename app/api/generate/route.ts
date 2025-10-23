@@ -37,30 +37,32 @@ export async function POST(req: Request) {
       - Format the entire response in clean markdown.
     `;
 
-    console.log("Calling Google Gemini streamText with gemini-pro-latest..."); // Updated log
-    // --- CHANGE MODEL NAME ---
+    console.log("Calling Google Gemini streamText with gemini-pro-latest..."); // Using last attempt
     const result = await streamText({
-      // Try the 'gemini-pro-latest' model name
-      // The SDK function adds 'models/' prefix automatically
-      model: google('gemini-pro-latest'), // Use gemini-pro-latest
+      model: google('gemini-pro-latest'), // Using last attempt
       prompt: masterPrompt,
     });
-    // --- END CHANGE ---
     console.log("streamText call finished.");
 
     if (result && result.textStream) {
       console.log("Returning textStream.");
-      // Return standard Response with the stream
       return new Response(result.textStream);
     } else {
       console.error("Error: textStream not found on result.");
       return NextResponse.json({ error: 'Internal Server Error: Failed to get stream' }, { status: 500 });
     }
 
-  } catch (error: any) {
+  // --- ESLINT FIX HERE ---
+  } catch (error: unknown) { // Changed 'any' to 'unknown'
     console.error("!!! Critical Error in API route:", error);
-    const errorMessage = error.message || 'An unknown error occurred';
-    console.error("Error Details:", error.cause || error.stack || error);
+    // Type check error before accessing properties
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    if (error instanceof Error) {
+        console.error("Error Details:", error.cause || error.stack || error);
+    } else {
+        console.error("Error Details:", error);
+    }
     return NextResponse.json({ error: `Internal Server Error: ${errorMessage}` }, { status: 500 });
+  // --- END FIX ---
   }
 }
