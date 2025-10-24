@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { ClipboardCopy, Trash2, Check } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
-// Import Link from next/link
 import Link from 'next/link';
+import toast, { Toaster } from 'react-hot-toast';
 
 // Define item structure
 interface PackingItem {
@@ -14,194 +14,214 @@ interface PackingItem {
 }
 
 export default function Home() {
-  // State variables
+  // --- State Variables ---
   const [localInput, setLocalInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [packingItems, setPackingItems] = useState<PackingItem[] | null>(null);
-  const [rawResultText, setRawResultText] = useState<string | null>(null);
+  const [rawResultText, setRawResultText] = useState<string | null>(null); // For copy
   const [errorText, setErrorText] = useState<string | null>(null);
-  const [showResult, setShowResult] = useState(true);
-  const [isCopied, setIsCopied] = useState(false);
+  const [showResult, setShowResult] = useState(true); // Controls overall visibility
+  // --- END State ---
 
-  // Input handler
+  // --- Handlers ---
   const handleLocalInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLocalInput(e.target.value);
   };
 
-  // Form submission handler (fetches data)
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGenerateClick = async () => {
+    console.log("handleGenerateClick called");
     if (!localInput.trim() || isLoading) return;
-    setIsLoading(true);
-    setPackingItems(null);
-    setRawResultText(null);
-    setErrorText(null);
-    setShowResult(true);
-    setIsCopied(false);
+    setIsLoading(true); setPackingItems(null); setRawResultText(null); /* setResultText(''); */ setErrorText(null); setShowResult(true); console.log("Submitting prompt:", localInput);
     try {
-      const response = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: localInput })
-      });
-      if (!response.ok || !response.body) { throw new Error("API request failed"); }
+      const response = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: localInput }) });
+      console.log("Fetch response:", { status: response.status, ok: response.ok });
+      if (!response.ok || !response.body) { throw new Error(`API Error ${response.status}`); }
       const fullResponseText = await response.text();
+      console.log("Raw Response:", fullResponseText.substring(0, 100) + "...");
       setRawResultText(fullResponseText);
       try {
-        const parsedItems: PackingItem[] = JSON.parse(fullResponseText);
-        if (!Array.isArray(parsedItems)) { throw new Error("AI response not JSON array."); }
-        setPackingItems(parsedItems);
+        console.log("Attempting JSON parse..."); const parsedItems: PackingItem[] = JSON.parse(fullResponseText); console.log("Parse successful:", parsedItems);
+        if (!Array.isArray(parsedItems)) { console.error("Not array"); throw new Error("AI response not array."); }
+        setPackingItems(parsedItems); // Set parsed items
       } catch (parseError: unknown) {
-        const message = parseError instanceof Error ? parseError.message : String(parseError);
-        setErrorText(`AI response not valid JSON: ${message}.`);
-        setPackingItems(null);
+        const message = parseError instanceof Error ? parseError.message : String(parseError); console.error("!!! JSON Parse Error:", parseError); setErrorText(`AI response not valid JSON: ${message}.`); setPackingItems(null); /* Keep rawResultText for copy */
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      setErrorText(`Failed: ${message}`);
-      setPackingItems(null);
-      setRawResultText(null);
-    } finally { setIsLoading(false); }
-  };
+      const message = error instanceof Error ? error.message : String(error); console.error("!!! Fetch Error:", error); setErrorText(`Failed: ${message}`); setPackingItems(null); setRawResultText(null);
+    } finally { setIsLoading(false); console.log("Generation finished."); }
+  }; // End handleGenerateClick
 
-  // Copy handler
   const handleCopy = () => {
-    if (rawResultText && !isCopied) {
-      navigator.clipboard.writeText(rawResultText).then(() => {
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 2000);
-      }).catch(err => { console.error('Copy failed:', err); alert("Failed copy."); });
+    if (rawResultText) {
+      navigator.clipboard.writeText(rawResultText)
+        .then(() => { toast.success('Copied!'); })
+        .catch(err => { console.error('Copy failed:', err); toast.error('Failed copy.'); });
     }
   };
-
-  // Delete (hide) handler
-  const handleDelete = () => { setShowResult(false); };
-
-  // Effect to manage state resets
-  useEffect(() => { if (isLoading) { setShowResult(true); setIsCopied(false); } }, [isLoading]);
+  const handleDelete = () => { setShowResult(false); }; // Hides the section
+  // Reset visibility when loading starts
+  useEffect(() => { if (isLoading) { setShowResult(true); } }, [isLoading]);
 
   // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { delayChildren: 0.1, staggerChildren: 0.05 } }
-  };
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
-  };
+  const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { delayChildren: 0.1, staggerChildren: 0.05 } } };
+  const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
 
-  // --- JSX STRUCTURE STARTS HERE ---
+  // Set Example Input Function
+  const setExampleInput = (example: string) => { setLocalInput(example); };
+
+  // --- START JSX RETURN ---
   return (
-    <div className="relative min-h-screen bg-white">
-      {/* Header - Using Next.js Link */}
-      <header className="sticky top-0 z-10 w-full bg-white bg-opacity-95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          {/* Use Link component */}
-          <Link href="/" className="text-xl font-bold text-gray-800 hover:text-purple-600 transition-colors">
-            Packmind AI
-          </Link>
-        </div>
+    <div className="relative min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-100">
+      <Toaster position="top-center" reverseOrder={false} />
+      {/* Header */}
+      <header className="sticky top-0 z-10 w-full bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
+         <div className="max-w-4xl mx-auto px-4 py-3">
+           <Link href="/" className="text-xl font-bold text-gray-800 hover:text-purple-600 transition-colors">
+             Packmind AI
+           </Link>
+         </div>
       </header>
 
       {/* Main content */}
       <main className="flex flex-col items-center justify-start p-4 pt-10 sm:pt-16">
-        <div className="w-full max-w-4xl"> {/* Wider container */}
+        {/* Elevated Content Container */}
+        <div className="w-full max-w-5xl bg-white rounded-lg shadow-lg p-6 sm:p-10">
 
-          {/* Form Section - Carefully checked structure */}
-          <div className="text-center mb-12 max-w-2xl mx-auto">
-             <h1 className="text-4xl sm:text-5xl font-bold mb-4">Never forget anything again.</h1>
-             <p className="text-lg text-gray-600 mb-8"> Tell us about your trip... </p>
-             {/* Form Tag */}
-             <form onSubmit={handleManualSubmit} className="flex flex-col gap-4">
-                 {/* Input Tag - Inside form */}
+          {/* Form Section */}
+          <div className="text-center mb-10 max-w-2xl mx-auto">
+             <h1 className="text-4xl sm:text-5xl font-bold mb-4 text-gray-900">Never forget anything again.</h1>
+             <p className="text-lg text-gray-600 mb-6">
+               Get a personalized packing list generated by AI. Just describe your trip below.
+             </p>
+             {/* How it Works */}
+             <div className="text-sm text-gray-500 mb-8 space-y-1 text-center">
+                <p>1. Describe your trip (destination, duration, activities).</p>
+                <p>2. Click Generate.</p>
+                <p>3. Get your smart packing list!</p>
+             </div>
+             {/* Input/Button Container */}
+             <div className="flex flex-col gap-4">
                  <input
                    type="text"
-                   value={localInput} // Connects to state
-                   onChange={handleLocalInputChange} // Allows typing
-                   placeholder="Type your trip details here..."
-                   className="w-full px-6 py-4 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                   value={localInput}
+                   onChange={handleLocalInputChange}
+                   placeholder="E.g., 5 days London business, Weekend camping trip"
+                   className="w-full px-6 py-4 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
                    disabled={isLoading}
                    aria-label="Trip details input"
+                   onKeyDown={(e) => { if (e.key === 'Enter' && !isLoading && localInput.trim()) { handleGenerateClick(); } }}
                  />
-                 {/* Button Tag - Inside form */}
-                 <button
-                   type="submit"
+                 <motion.button
+                   type="button"
+                   onClick={handleGenerateClick}
                    disabled={isLoading || !localInput.trim()}
-                   className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 sm:py-6 text-lg font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                   className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 sm:py-6 text-lg font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                   whileTap={{ scale: 0.97 }}
+                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                 >
                    {isLoading ? "Generating..." : "Generate My List"}
-                 </button>
-             {/* Closing Form Tag */}
-             </form>
+                 </motion.button>
+             {/* End Input/Button Container */}
+             </div>
+             {/* Examples Div */}
+             <div className="mt-4 text-sm text-gray-500">
+                Try:{" "}
+                <button type="button" onClick={() => setExampleInput('Weekend beach trip to Miami')} className="underline hover:text-purple-600 focus:outline-none"> Weekend beach trip </button>{" "}
+                or{" "}
+                <button type="button" onClick={() => setExampleInput('10 days in Italy, sightseeing')} className="underline hover:text-purple-600 focus:outline-none"> 10 days in Italy </button>
+             </div>
           {/* Closing Form Section Div */}
           </div>
 
           {/* Results Section */}
           <div className="mt-8 w-full">
             {/* Error Display */}
-             {errorText && ( <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 max-w-2xl mx-auto"> Error: {errorText} </div> )}
+            {errorText && ( <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 max-w-2xl mx-auto"> Error: {errorText} </div> )}
 
-            {/* Result Display Area - Using AnimatePresence */}
+            {/* Result Display Area using AnimatePresence */}
             <AnimatePresence>
-             {showResult && (packingItems || isLoading) && !errorText && (
-               <motion.div // Wrap results container for exit animation
-                 key="results-container" // Key for AnimatePresence
-                 className="w-full"
-                 initial={{ opacity: 0 }}
-                 animate={{ opacity: 1 }}
-                 exit={{ opacity: 0 }}
-                 transition={{ duration: 0.3 }}
-               >
-                 <div className="flex justify-end gap-2 mb-4 max-w-2xl mx-auto"> {/* Buttons */}
-                   <button onClick={handleCopy} disabled={!rawResultText || isCopied} title={isCopied ? "Copied!" : "Copy JSON"} aria-label={isCopied ? "Copied!" : "Copy JSON"} className="p-2 text-gray-600 hover:bg-gray-200 rounded disabled:opacity-50"> {isCopied ? <Check size={20}/> : <ClipboardCopy size={20}/>} </button>
-                   <button onClick={handleDelete} disabled={(!packingItems && !isLoading)} title="Delete" aria-label="Delete" className="p-2 text-gray-600 hover:bg-gray-200 rounded disabled:opacity-50"> <Trash2 size={20}/> </button>
-                 </div>
+              {/* Condition 1: Show results block if showResult=true, NO error, AND (isLoading OR packingItems exist) */}
+              {showResult && !errorText && (isLoading || packingItems) && (
+                <motion.div
+                  key="results-block-content" // Unique key
+                  className="w-full"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
+                >
+                  {/* Buttons Container */}
+                  <div className="flex justify-end gap-2 mb-4 max-w-2xl mx-auto">
+                    <button onClick={handleCopy} disabled={!rawResultText} title="Copy JSON" aria-label="Copy JSON" className="p-2 text-gray-600 hover:bg-gray-200 rounded disabled:opacity-50"> <ClipboardCopy size={20}/> </button>
+                    <button onClick={handleDelete} disabled={!(isLoading || packingItems)} title="Delete" aria-label="Delete" className="p-2 text-gray-600 hover:bg-gray-200 rounded disabled:opacity-50"> <Trash2 size={20}/> </button>
+                  {/* End Buttons Container */}
+                  </div>
 
-                 {/* Grid Layout */}
-                 {isLoading && !packingItems && ( <p className="text-gray-500 text-center italic max-w-2xl mx-auto">Generating...</p> )}
-                 {packingItems && (
-                   <motion.div // Grid container with animation variants
-                     className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6"
-                     variants={containerVariants}
-                     initial="hidden"
-                     animate="visible"
-                   >
-                     {packingItems.map((item, index) => (
-                       <motion.div // Each card with animation variants
-                         key={item.item_name + index} // Use a more stable key if possible
-                         className="border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white flex flex-col"
-                         variants={itemVariants}
+                  {/* Content Area (Gray Box) */}
+                  <div className="bg-gray-50 rounded-lg p-4 sm:p-6 shadow-sm">
+                     {/* Loading Indicator - Show only if loading AND packingItems is still null */}
+                     {isLoading && !packingItems && (
+                       <p className="text-gray-500 text-center italic">Generating...</p>
+                     )}
+
+                     {/* Grid Layout - Show only if NOT loading AND packingItems is valid */}
+                     {!isLoading && packingItems && packingItems.length > 0 && (
+                       <motion.div
+                         className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6"
+                         variants={containerVariants} initial="hidden" animate="visible"
                        >
-                         {/* Image Placeholder */}
-                         <div className="w-full h-40 bg-gray-200 flex items-center justify-center text-gray-400">
-                           <span>Image Placeholder</span>
-                         </div>
-                         {/* Text Content */}
-                         <div className="p-4 flex flex-col flex-grow">
-                           <h3 className="font-semibold text-base text-gray-800 mb-1">{item.item_name}</h3>
-                           <p className="text-sm text-gray-600 flex-grow mb-2">{item.description}</p>
-                           <a href="#" onClick={(e)=>e.preventDefault()} className="text-purple-600 hover:underline text-sm mt-auto pt-2 block">
-                             View Product (Link coming soon)
-                           </a>
-                         </div>
-                       </motion.div> // End Item Card motion.div
-                     ))}
-                   </motion.div> // End Grid container motion.div
-                 )}
-               </motion.div> // End results container motion.div
-             )}
-            </AnimatePresence> {/* End AnimatePresence */}
+                         {packingItems.map((item, index) => (
+                           <motion.div
+                             key={item.item_name + index} // Use item name + index for key
+                             className="border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white flex flex-col"
+                             variants={itemVariants}
+                             whileHover={{ scale: 1.03, y: -2, boxShadow: "0px 5px 15px rgba(0,0,0,0.1)" }}
+                             transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                           >
+                             {/* Image Placeholder */}
+                             <div className="w-full h-40 bg-gray-200 flex items-center justify-center text-gray-400">
+                               <span>Image Placeholder</span>
+                             </div>
+                             {/* Text Content */}
+                             <div className="p-4 flex flex-col flex-grow">
+                               <h3 className="font-semibold text-base text-gray-800 mb-1">{item.item_name}</h3>
+                               <p className="text-sm text-gray-600 flex-grow mb-2">{item.description}</p>
+                               <a href="#" onClick={(e) => e.preventDefault()} className="text-purple-600 hover:underline text-sm mt-auto pt-2 block">
+                                 View Product {/*...*/}
+                               </a>
+                             </div>
+                           </motion.div> // End Item Card
+                         ))}
+                       </motion.div> // End Grid
+                     )}
 
-            {/* Placeholder */}
-             {!isLoading && !errorText && (!packingItems || !showResult) && (
+                     {/* Handle case where API might return empty array */}
+                     {!isLoading && packingItems && packingItems.length === 0 && (
+                        <p className="text-gray-500 text-center italic">No packing items generated for this trip.</p>
+                     )}
+
+                     {/* Raw Text Display (If JSON parse failed - This logic was removed previously, keep removed for now) */}
+                     {/* {!packingItems && resultText && !isLoading && ( ... raw text div ... )} */}
+
+                  {/* End Content Area (Gray Box) */}
+                  </div>
+                {/* End results-block motion.div */}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Placeholder - Show if NOT loading, NO error, AND (results hidden OR packingItems is null) */}
+            {!isLoading && !errorText && (!showResult || packingItems === null) && (
                <div className="bg-gray-100 rounded-lg p-6 shadow-sm max-w-2xl mx-auto">
                  <p className="text-gray-500 text-center italic">
-                   {showResult ? "Your packing list..." : "Result cleared."}
+                   {showResult ? "Your packing list will appear here..." : "Result cleared."}
                  </p>
                </div>
-             )}
-          </div> {/* End Results section div */}
-        </div> {/* End max-w-4xl div */}
-      </main> {/* End main */}
-    </div> // End relative div
+            )}
+          {/* End Results section div */}
+          </div>
+        {/* End Elevated Content Container Div */}
+        </div>
+      {/* End main */}
+      </main>
+    {/* End main return div */}
+    </div>
   ); // End return
 } // End Home function
