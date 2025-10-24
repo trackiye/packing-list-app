@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { ClipboardCopy, Trash2, Check } from "lucide-react";
-import { motion, AnimatePresence } from 'framer-motion'; // Import motion and AnimatePresence
+import { motion, AnimatePresence } from 'framer-motion';
+// Import Link from next/link
+import Link from 'next/link';
 
 // Define item structure
 interface PackingItem {
@@ -16,7 +18,7 @@ export default function Home() {
   const [localInput, setLocalInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [packingItems, setPackingItems] = useState<PackingItem[] | null>(null);
-  const [rawResultText, setRawResultText] = useState<string | null>(null); // Keep for copy
+  const [rawResultText, setRawResultText] = useState<string | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
@@ -31,7 +33,7 @@ export default function Home() {
     e.preventDefault();
     if (!localInput.trim() || isLoading) return;
     setIsLoading(true);
-    setPackingItems(null); // Clear items to trigger animations if showing
+    setPackingItems(null);
     setRawResultText(null);
     setErrorText(null);
     setShowResult(true);
@@ -91,12 +93,13 @@ export default function Home() {
   // --- JSX STRUCTURE STARTS HERE ---
   return (
     <div className="relative min-h-screen bg-white">
-      {/* Header */}
+      {/* Header - Using Next.js Link */}
       <header className="sticky top-0 z-10 w-full bg-white bg-opacity-95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-3">
-          <a href="/" className="text-xl font-bold text-gray-800 hover:text-purple-600 transition-colors">
+          {/* Use Link component */}
+          <Link href="/" className="text-xl font-bold text-gray-800 hover:text-purple-600 transition-colors">
             Packmind AI
-          </a>
+          </Link>
         </div>
       </header>
 
@@ -104,30 +107,32 @@ export default function Home() {
       <main className="flex flex-col items-center justify-start p-4 pt-10 sm:pt-16">
         <div className="w-full max-w-4xl"> {/* Wider container */}
 
-          {/* Form Section */}
+          {/* Form Section - Carefully checked structure */}
           <div className="text-center mb-12 max-w-2xl mx-auto">
              <h1 className="text-4xl sm:text-5xl font-bold mb-4">Never forget anything again.</h1>
              <p className="text-lg text-gray-600 mb-8"> Tell us about your trip... </p>
              {/* Form Tag */}
              <form onSubmit={handleManualSubmit} className="flex flex-col gap-4">
-                 {/* Input Tag */}
+                 {/* Input Tag - Inside form */}
                  <input
                    type="text"
-                   value={localInput}
-                   onChange={handleLocalInputChange}
+                   value={localInput} // Connects to state
+                   onChange={handleLocalInputChange} // Allows typing
                    placeholder="Type your trip details here..."
                    className="w-full px-6 py-4 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                    disabled={isLoading}
                    aria-label="Trip details input"
                  />
-                 {/* Button Tag */}
+                 {/* Button Tag - Inside form */}
                  <button
                    type="submit"
                    disabled={isLoading || !localInput.trim()}
                    className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 sm:py-6 text-lg font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                    {isLoading ? "Generating..." : "Generate My List"}
                  </button>
+             {/* Closing Form Tag */}
              </form>
+          {/* Closing Form Section Div */}
           </div>
 
           {/* Results Section */}
@@ -162,7 +167,7 @@ export default function Home() {
                    >
                      {packingItems.map((item, index) => (
                        <motion.div // Each card with animation variants
-                         key={item.item_name + index} // Use a more stable key
+                         key={item.item_name + index} // Use a more stable key if possible
                          className="border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white flex flex-col"
                          variants={itemVariants}
                        >
