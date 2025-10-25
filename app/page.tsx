@@ -32,6 +32,28 @@ export default function Home() {
     console.log("handleGenerateClick called");
     if (!localInput.trim() || isLoading) return;
     setIsLoading(true); setPackingItems(null); setRawResultText(null); /* setResultText(''); */ setErrorText(null); setShowResult(true); console.log("Submitting prompt:", localInput);
+// Inside handleGenerateClick function...
+const handleGenerateClick = async () => {
+    console.log("handleGenerateClick called");
+    if (!localInput.trim() || isLoading) return;
+
+    // --- ADD ANALYTICS TRACKING HERE ---
+    if (typeof window.gtag === 'function') {
+        window.gtag('event', 'list_generated', {
+            'event_category': 'Engagement',
+            'event_label': 'Generate Button Click',
+            'value': localInput.length // Track complexity of the prompt
+        });
+    }
+    // --- END ANALYTICS TRACKING ---
+
+    setIsLoading(true);
+    setPackingItems(null);
+    setRawResultText(null);
+    setErrorText(null);
+    setShowResult(true);
+    // ... rest of generation logic ...
+}
     try {
       const response = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: localInput }) });
       console.log("Fetch response:", { status: response.status, ok: response.ok });
