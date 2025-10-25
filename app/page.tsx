@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
 
-// Define item structure
 interface PackingItem {
   item_name: string;
   description: string;
@@ -31,29 +30,7 @@ export default function Home() {
   const handleGenerateClick = async () => {
     console.log("handleGenerateClick called");
     if (!localInput.trim() || isLoading) return;
-    setIsLoading(true); setPackingItems(null); setRawResultText(null); /* setResultText(''); */ setErrorText(null); setShowResult(true); console.log("Submitting prompt:", localInput);
-// Inside handleGenerateClick function...
-const handleGenerateClick = async () => {
-    console.log("handleGenerateClick called");
-    if (!localInput.trim() || isLoading) return;
-
-    // --- ADD ANALYTICS TRACKING HERE ---
-    if (typeof window.gtag === 'function') {
-        window.gtag('event', 'list_generated', {
-            'event_category': 'Engagement',
-            'event_label': 'Generate Button Click',
-            'value': localInput.length // Track complexity of the prompt
-        });
-    }
-    // --- END ANALYTICS TRACKING ---
-
-    setIsLoading(true);
-    setPackingItems(null);
-    setRawResultText(null);
-    setErrorText(null);
-    setShowResult(true);
-    // ... rest of generation logic ...
-}
+    setIsLoading(true); setPackingItems(null); setRawResultText(null); setErrorText(null); setShowResult(true); console.log("Submitting prompt:", localInput);
     try {
       const response = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: localInput }) });
       console.log("Fetch response:", { status: response.status, ok: response.ok });
@@ -93,9 +70,11 @@ const handleGenerateClick = async () => {
 
   // --- START JSX RETURN ---
   return (
+    // Background Gradient and Main Container
     <div className="relative min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-100">
       <Toaster position="top-center" reverseOrder={false} />
-      {/* Header */}
+      
+      {/* Header (Sticky Navigation) */}
       <header className="sticky top-0 z-10 w-full bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
          <div className="max-w-4xl mx-auto px-4 py-3">
            <Link href="/" className="text-xl font-bold text-gray-800 hover:text-purple-600 transition-colors">
@@ -143,7 +122,6 @@ const handleGenerateClick = async () => {
                  >
                    {isLoading ? "Generating..." : "Generate My List"}
                  </motion.button>
-             {/* End Input/Button Container */}
              </div>
              {/* Examples Div */}
              <div className="mt-4 text-sm text-gray-500">
@@ -152,7 +130,6 @@ const handleGenerateClick = async () => {
                 or{" "}
                 <button type="button" onClick={() => setExampleInput('10 days in Italy, sightseeing')} className="underline hover:text-purple-600 focus:outline-none"> 10 days in Italy </button>
              </div>
-          {/* Closing Form Section Div */}
           </div>
 
           {/* Results Section */}
@@ -165,7 +142,7 @@ const handleGenerateClick = async () => {
               {/* Condition 1: Show results block if showResult=true, NO error, AND (isLoading OR packingItems exist) */}
               {showResult && !errorText && (isLoading || packingItems) && (
                 <motion.div
-                  key="results-block-content" // Unique key
+                  key="results-block-content"
                   className="w-full"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
                 >
@@ -173,7 +150,6 @@ const handleGenerateClick = async () => {
                   <div className="flex justify-end gap-2 mb-4 max-w-2xl mx-auto">
                     <button onClick={handleCopy} disabled={!rawResultText} title="Copy JSON" aria-label="Copy JSON" className="p-2 text-gray-600 hover:bg-gray-200 rounded disabled:opacity-50"> <ClipboardCopy size={20}/> </button>
                     <button onClick={handleDelete} disabled={!(isLoading || packingItems)} title="Delete" aria-label="Delete" className="p-2 text-gray-600 hover:bg-gray-200 rounded disabled:opacity-50"> <Trash2 size={20}/> </button>
-                  {/* End Buttons Container */}
                   </div>
 
                   {/* Content Area (Gray Box) */}
@@ -191,7 +167,7 @@ const handleGenerateClick = async () => {
                        >
                          {packingItems.map((item, index) => (
                            <motion.div
-                             key={item.item_name + index} // Use item name + index for key
+                             key={item.item_name + index}
                              className="border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white flex flex-col"
                              variants={itemVariants}
                              whileHover={{ scale: 1.03, y: -2, boxShadow: "0px 5px 15px rgba(0,0,0,0.1)" }}
@@ -219,9 +195,6 @@ const handleGenerateClick = async () => {
                         <p className="text-gray-500 text-center italic">No packing items generated for this trip.</p>
                      )}
 
-                     {/* Raw Text Display (If JSON parse failed - This logic was removed previously, keep removed for now) */}
-                     {/* {!packingItems && resultText && !isLoading && ( ... raw text div ... )} */}
-
                   {/* End Content Area (Gray Box) */}
                   </div>
                 {/* End results-block motion.div */}
@@ -229,8 +202,8 @@ const handleGenerateClick = async () => {
               )}
             </AnimatePresence>
 
-            {/* Placeholder - Show if NOT loading, NO error, AND (results hidden OR packingItems is null) */}
-            {!isLoading && !errorText && (!showResult || packingItems === null) && (
+            {/* Placeholder - Show if NOT loading, no error, AND (results hidden OR packingItems is null) */}
+            {!isLoading && !errorText && (!showResult || !packingItems) && (
                <div className="bg-gray-100 rounded-lg p-6 shadow-sm max-w-2xl mx-auto">
                  <p className="text-gray-500 text-center italic">
                    {showResult ? "Your packing list will appear here..." : "Result cleared."}
