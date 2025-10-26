@@ -17,10 +17,17 @@ interface PackingItem {
 }
 
 // --- Animation Variants (defined globally) ---
+// --- FIX: Removed 'ease: "easeOut"' from the transition ---
 const scrollFadeInVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.5 } // <-- FIX IS HERE
+  }
 };
+// --- END FIX ---
+
 const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { delayChildren: 0.1, staggerChildren: 0.05 } } };
 const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
 
@@ -96,7 +103,7 @@ export default function Home() {
     <div className="relative min-h-screen bg-gradient-to-br from-purple-100 to-indigo-200">
       <Toaster position="top-center" reverseOrder={false} />
       
-      {/* --- 1. GLASS HEADER --- */}
+      {/* Glass Header */}
       <header className="sticky top-0 z-10 w-full bg-white/75 backdrop-blur-lg shadow-sm border-b border-gray-200/50">
          <div className="max-w-4xl mx-auto px-4 py-3">
            <Link href="/" className="text-xl font-bold text-gray-800 hover:text-purple-600 transition-colors">
@@ -104,7 +111,6 @@ export default function Home() {
            </Link>
          </div>
       </header>
-      {/* --- END HEADER --- */}
 
       {/* Main content */}
       <main className="flex flex-col items-center justify-start p-4 pt-10 sm:pt-16 overflow-x-hidden">
@@ -176,14 +182,14 @@ export default function Home() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.1 }}
-            variants={scrollFadeInVariants}
+            variants={scrollFadeInVariants} // This variable is now fixed
           >
             {/* Error Display */}
             {errorText && ( <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 max-w-2xl mx-auto"> Error: {errorText} </div> )}
 
             {/* Result Display Area */}
             <AnimatePresence>
-              {/* Child 1: Results Block (Show when loading or has items) */}
+              {/* Child 1: Results Block */}
               {showResult && !errorText && (isLoading || packingItems) && (
                 <motion.div
                   key="results-block-content"
@@ -259,7 +265,6 @@ export default function Home() {
                 </motion.div>
               )}
 
-              {/* --- 2. STRUCTURAL FIX: PLACEHOLDER *INSIDE* AnimatePresence --- */}
               {/* Child 2: Placeholder Block */}
               {!isLoading && !errorText && (!showResult || !packingItems) && (
                  <motion.div
@@ -268,12 +273,11 @@ export default function Home() {
                  >
                    <div className="bg-gray-100 rounded-lg p-6 shadow-sm max-w-2xl mx-auto">
                      <p className="text-gray-500 text-center italic">
-                       {showResult ? "Your packing list will appear here..." : "Result cleared."}
+                       {showResult ? "Your packing list..." : "Result cleared."}
                      </p>
                    </div>
                  </motion.div>
               )}
-              {/* --- END FIX --- */}
             </AnimatePresence>
             
           </motion.div>
