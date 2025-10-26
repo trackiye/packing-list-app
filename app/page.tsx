@@ -5,6 +5,13 @@ import { ClipboardCopy, Trash2, Check } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
+// --- 1. IMPORT LOTTIE ---
+import Lottie from 'lottie-react';
+import loadingAnimation from '../assets/loading-animation.json'; // Import your animation
+// --- END IMPORT ---
+
+// Import helper functions and data
+import { getLocalProductData } from '../data/affiliateProducts';
 
 interface PackingItem {
   item_name: string;
@@ -17,9 +24,9 @@ export default function Home() {
   const [localInput, setLocalInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [packingItems, setPackingItems] = useState<PackingItem[] | null>(null);
-  const [rawResultText, setRawResultText] = useState<string | null>(null); // For copy
+  const [rawResultText, setRawResultText] = useState<string | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
-  const [showResult, setShowResult] = useState(true); // Controls overall visibility
+  const [showResult, setShowResult] = useState(true);
   // --- END State ---
 
   // --- Handlers ---
@@ -35,15 +42,14 @@ export default function Home() {
       const response = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: localInput }) });
       console.log("Fetch response:", { status: response.status, ok: response.ok });
       if (!response.ok || !response.body) { throw new Error(`API Error ${response.status}`); }
-      const fullResponseText = await response.text();
+      const fullResponseText = await response.text(); setRawResultText(fullResponseText);
       console.log("Raw Response:", fullResponseText.substring(0, 100) + "...");
-      setRawResultText(fullResponseText);
       try {
         console.log("Attempting JSON parse..."); const parsedItems: PackingItem[] = JSON.parse(fullResponseText); console.log("Parse successful:", parsedItems);
         if (!Array.isArray(parsedItems)) { console.error("Not array"); throw new Error("AI response not array."); }
         setPackingItems(parsedItems); // Set parsed items
       } catch (parseError: unknown) {
-        const message = parseError instanceof Error ? parseError.message : String(parseError); console.error("!!! JSON Parse Error:", parseError); setErrorText(`AI response not valid JSON: ${message}.`); setPackingItems(null); /* Keep rawResultText for copy */
+        const message = parseError instanceof Error ? parseError.message : String(parseError); console.error("!!! JSON Parse Error:", parseError); setErrorText(`AI response not valid JSON: ${message}.`); setPackingItems(null);
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error); console.error("!!! Fetch Error:", error); setErrorText(`Failed: ${message}`); setPackingItems(null); setRawResultText(null);
@@ -70,11 +76,9 @@ export default function Home() {
 
   // --- START JSX RETURN ---
   return (
-    // Background Gradient and Main Container
     <div className="relative min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-100">
       <Toaster position="top-center" reverseOrder={false} />
-      
-      {/* Header (Sticky Navigation) */}
+      {/* Header */}
       <header className="sticky top-0 z-10 w-full bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
          <div className="max-w-4xl mx-auto px-4 py-3">
            <Link href="/" className="text-xl font-bold text-gray-800 hover:text-purple-600 transition-colors">
@@ -137,9 +141,8 @@ export default function Home() {
             {/* Error Display */}
             {errorText && ( <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 max-w-2xl mx-auto"> Error: {errorText} </div> )}
 
-            {/* Result Display Area using AnimatePresence */}
+            {/* Result Display Area */}
             <AnimatePresence>
-              {/* Condition 1: Show results block if showResult=true, NO error, AND (isLoading OR packingItems exist) */}
               {showResult && !errorText && (isLoading || packingItems) && (
                 <motion.div
                   key="results-block-content"
@@ -154,55 +157,66 @@ export default function Home() {
 
                   {/* Content Area (Gray Box) */}
                   <div className="bg-gray-50 rounded-lg p-4 sm:p-6 shadow-sm">
-                     {/* Loading Indicator - Show only if loading AND packingItems is still null */}
+                     {/* --- 2. REPLACE LOADING TEXT WITH LOTTIE --- */}
                      {isLoading && !packingItems && (
-                       <p className="text-gray-500 text-center italic">Generating...</p>
+                       <div className="flex flex-col items-center justify-center py-10">
+                         {/* Adjust width/height as needed */}
+                         <Lottie animationData={loadingAnimation} loop={true} style={{ width: 150, height: 150 }} />
+                         <p className="text-gray-500 text-center italic mt-2">Generating your list...</p>
+                       </div>
                      )}
+                     {/* --- END LOTTIE --- */}
 
-                     {/* Grid Layout - Show only if NOT loading AND packingItems is valid */}
+                     {/* Grid Layout (if parsing succeeded) */}
                      {!isLoading && packingItems && packingItems.length > 0 && (
                        <motion.div
                          className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6"
                          variants={containerVariants} initial="hidden" animate="visible"
                        >
-                         {packingItems.map((item, index) => (
-                           <motion.div
-                             key={item.item_name + index}
-                             className="border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white flex flex-col"
-                             variants={itemVariants}
-                             whileHover={{ scale: 1.03, y: -2, boxShadow: "0px 5px 15px rgba(0,0,0,0.1)" }}
-                             transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                           >
+                         {packingItems.map((item, index) => {
+                           const productData = getLocalProductData(item.item_name);
+                           const isAffiliate = productData.is_affiliate;
+                           
+                           return (
+                           <motion.div key={item.item_name + index} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white flex flex-col" variants={itemVariants} whileHover={{ scale: 1.03, y: -2, boxShadow: "0px 5px 15px rgba(0,0,0,0.1)" }} transition={{ type: "spring", stiffness: 300, damping: 20 }} >
                              {/* Image Placeholder */}
-                             <div className="w-full h-40 bg-gray-200 flex items-center justify-center text-gray-400">
-                               <span>Image Placeholder</span>
+                             <div className="w-full h-40 bg-gray-200 flex items-center justify-center text-gray-400 relative">
+                               <a href={productData.product_link} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+                                  <img 
+                                    src={productData.image_link || "https://via.placeholder.com/150/d3d3d3/808080?text=Packmind"} 
+                                    alt={item.item_name} 
+                                    className="w-full h-full object-cover"
+                                  />
+                               </a>
+                               {/* AFFILIATE BADGE */}
+                               {isAffiliate && (
+                                   <span className="absolute top-2 left-2 bg-purple-600 text-white text-xs font-semibold px-2 py-1 rounded-full opacity-90">
+                                       Affiliate Link
+                                   </span>
+                               )}
                              </div>
                              {/* Text Content */}
                              <div className="p-4 flex flex-col flex-grow">
-                               <h3 className="font-semibold text-base text-gray-800 mb-1">{item.item_name}</h3>
-                               <p className="text-sm text-gray-600 flex-grow mb-2">{item.description}</p>
-                               <a href="#" onClick={(e) => e.preventDefault()} className="text-purple-600 hover:underline text-sm mt-auto pt-2 block">
-                                 View Product {/*...*/}
+                               <a href={productData.product_link} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-700 hover:underline text-base font-semibold mb-1">
+                                   {productData.product_title}
                                </a>
+                               <p className="text-sm text-gray-600 flex-grow mb-2">{item.description}</p>
                              </div>
                            </motion.div> // End Item Card
-                         ))}
+                         ); // End return
+                        })}
                        </motion.div> // End Grid
                      )}
-
                      {/* Handle case where API might return empty array */}
                      {!isLoading && packingItems && packingItems.length === 0 && (
                         <p className="text-gray-500 text-center italic">No packing items generated for this trip.</p>
                      )}
-
-                  {/* End Content Area (Gray Box) */}
                   </div>
-                {/* End results-block motion.div */}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Placeholder - Show if NOT loading, no error, AND (results hidden OR packingItems is null) */}
+            {/* Placeholder - Show if NOT loading, NO error, AND (results hidden OR packingItems is null) */}
             {!isLoading && !errorText && (!showResult || !packingItems) && (
                <div className="bg-gray-100 rounded-lg p-6 shadow-sm max-w-2xl mx-auto">
                  <p className="text-gray-500 text-center italic">
@@ -210,13 +224,9 @@ export default function Home() {
                  </p>
                </div>
             )}
-          {/* End Results section div */}
           </div>
-        {/* End Elevated Content Container Div */}
         </div>
-      {/* End main */}
       </main>
-    {/* End main return div */}
     </div>
   ); // End return
 } // End Home function
