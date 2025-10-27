@@ -2,7 +2,7 @@
 "use client";
 
 import Lottie from 'lottie-react';
-import loadingAnimation from '../assets/loading-animation.json'; // Import your animation
+import loadingAnimation from '../assets/loading-animation.json';
 
 export default function LoadingAnimation() {
   return (
@@ -10,10 +10,9 @@ export default function LoadingAnimation() {
       <Lottie 
         animationData={loadingAnimation} 
         loop={true} 
-        // --- SIZE IS FIXED HERE ---
         style={{ width: 350, height: 350 }} 
       />
-      <p className="text-gray-500 text-center italic mt-2">Generating your list...</p>
+      <p className="text-white text-center italic mt-2 drop-shadow-md">Generating your list...</p>
     </div>
   );
 }
