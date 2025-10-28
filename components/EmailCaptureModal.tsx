@@ -28,13 +28,12 @@ export default function EmailCaptureModal({ isOpen, onClose, onSubmit, trigger }
 
     try {
       await onSubmit(email);
-      
-      if (typeof window !== 'undefined' && (window as Window & { gtag?: (...args: unknown[]) => void }).gtag) {
-        (window as Window & { gtag: (...args: unknown[]) => void }).gtag('event', 'email_captured', {
-          event_category: 'conversion',
-          trigger: trigger,
-        });
-      }
+      if (typeof window !== 'undefined' && (window as any).gtag) {
+  (window as any).gtag('event', 'email_captured', {
+    event_category: 'conversion',
+    trigger: trigger,
+  });
+}
 
       setEmail('');
       onClose();

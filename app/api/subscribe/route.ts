@@ -117,7 +117,6 @@ Example Response Format:
       model: openai('gpt-3.5-turbo'),
       prompt: masterPrompt,
       temperature: 0.7,
-      // Removed maxTokens - not supported in this version of the AI SDK
     });
 
     // --- Validate Response ---
