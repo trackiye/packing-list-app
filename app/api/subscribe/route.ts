@@ -116,8 +116,8 @@ Example Response Format:
     const { text } = await generateText({
       model: openai('gpt-3.5-turbo'),
       prompt: masterPrompt,
-      temperature: 0.7, // Add some creativity
-      max_tokens: 1000, // ✅ CORRECTED PARAMETER NAME (using snake_case)
+      temperature: 0.7,
+      // Removed maxTokens - not supported in this version of the AI SDK
     });
 
     // --- Validate Response ---
