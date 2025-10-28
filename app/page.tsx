@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { ClipboardCopy, Trash2, Search, Cog, ListChecks, Download, Share2, Check, FileText, Edit, Sparkles, Plane, Globe } from "lucide-react";
+import { ClipboardCopy, Trash2, Search, Cog, ListChecks, Download, Share2, Check, FileText, Edit } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
@@ -21,39 +21,17 @@ interface PackingItem {
 }
 
 // --- Animation Variants ---
-const fadeSlideInVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+const scrollFadeInVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
 };
-
 const containerVariants = { 
   hidden: { opacity: 0 }, 
-  visible: { 
-    opacity: 1, 
-    transition: { 
-      delayChildren: 0.1, 
-      staggerChildren: 0.06 
-    } 
-  } 
+  visible: { opacity: 1, transition: { delayChildren: 0.1, staggerChildren: 0.05 } } 
 };
-
 const itemVariants = { 
-  hidden: { y: 30, opacity: 0, scale: 0.95 }, 
-  visible: { 
-    y: 0, 
-    opacity: 1,
-    scale: 1,
-    transition: { duration: 0.5, ease: "easeOut" }
-  } 
-};
-
-const heroVariants = {
-  hidden: { opacity: 0, scale: 0.95 },
-  visible: { 
-    opacity: 1, 
-    scale: 1,
-    transition: { duration: 0.8, ease: "easeOut" }
-  }
+  hidden: { y: 20, opacity: 0 }, 
+  visible: { y: 0, opacity: 1 } 
 };
 
 export default function Home() {
@@ -174,6 +152,18 @@ export default function Home() {
         }
         
         toast.success('Packing list generated!');
+        
+        // AUTO-SCROLL TO RESULTS - Smooth scroll after a brief delay
+        setTimeout(() => {
+          const resultsSection = document.getElementById('results-section');
+          if (resultsSection) {
+            resultsSection.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start',
+            });
+          }
+        }, 500);
+        
       } catch (parseError: unknown) {
         const message = parseError instanceof Error ? parseError.message : String(parseError); 
         setErrorText(`AI response not valid JSON: ${message}.`); 
@@ -247,6 +237,7 @@ export default function Home() {
     }
   };
 
+  // NEW: Export as PDF
   const handleExportPDF = async () => {
     if (!packingItems) return;
 
@@ -313,6 +304,7 @@ export default function Home() {
     toast.success('List cleared');
   };
 
+  // NEW: Handle email submission
   const handleEmailSubmit = async (email: string) => {
     try {
       const response = await fetch('/api/subscribe', {
@@ -360,14 +352,7 @@ export default function Home() {
 
   // --- JSX RETURN ---
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[#667eea] via-[#764ba2] to-[#f093fb] animated-gradient overflow-hidden">
-      {/* Floating orbs background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/30 rounded-full blur-3xl float-animation" style={{ animationDelay: '0s' }}></div>
-        <div className="absolute top-40 right-20 w-96 h-96 bg-purple-400/30 rounded-full blur-3xl float-animation" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute bottom-20 left-1/4 w-80 h-80 bg-pink-400/30 rounded-full blur-3xl float-animation" style={{ animationDelay: '4s' }}></div>
-      </div>
-
+    <div className="relative min-h-screen bg-gradient-to-br from-purple-400 via-pink-400 to-blue-500 animated-gradient">
       <Toaster position="top-center" reverseOrder={false} />
       
       {/* Email Capture Modal */}
@@ -379,263 +364,158 @@ export default function Home() {
       />
       
       {/* Glass Header */}
-      <header className="sticky top-0 z-50 w-full glass-strong border-b border-white/20 backdrop-blur-2xl">
-         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
-           <Link href="/" className="flex items-center gap-2 group">
-             <Sparkles className="w-6 h-6 text-yellow-300 glow-pulse" />
-             <span className="text-2xl font-black bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
-               Packmind AI
-             </span>
+      <header className="sticky top-0 z-10 w-full bg-white/75 backdrop-blur-lg shadow-sm border-b border-white/20">
+         <div className="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+           <Link href="/" className="text-xl font-bold text-gray-800 hover:text-purple-600 transition-colors">
+             Packmind AI
            </Link>
            {packingItems && packingItems.length > 0 && (
-             <motion.div 
-               className="glass-dark px-6 py-2 rounded-full shadow-xl"
-               initial={{ scale: 0 }}
-               animate={{ scale: 1 }}
-               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-             >
-               <div className="flex items-center gap-3">
-                 <div className="relative w-12 h-12">
-                   <svg className="w-full h-full transform -rotate-90">
-                     <circle
-                       cx="24"
-                       cy="24"
-                       r="20"
-                       stroke="rgba(255,255,255,0.2)"
-                       strokeWidth="4"
-                       fill="none"
-                     />
-                     <circle
-                       cx="24"
-                       cy="24"
-                       r="20"
-                       stroke="url(#gradient)"
-                       strokeWidth="4"
-                       fill="none"
-                       strokeDasharray={`${2 * Math.PI * 20}`}
-                       strokeDashoffset={`${2 * Math.PI * 20 * (1 - getProgress() / 100)}`}
-                       className="transition-all duration-500"
-                     />
-                     <defs>
-                       <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                         <stop offset="0%" stopColor="#3b82f6" />
-                         <stop offset="100%" stopColor="#8b5cf6" />
-                       </linearGradient>
-                     </defs>
-                   </svg>
-                   <div className="absolute inset-0 flex items-center justify-center">
-                     <span className="text-white text-xs font-bold">{getProgress()}%</span>
-                   </div>
-                 </div>
-                 <span className="text-white font-bold">Packed</span>
-               </div>
-             </motion.div>
+             <div className="bg-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+               {getProgress()}% Packed
+             </div>
            )}
          </div>
       </header>
 
       {/* Main content */}
-      <main className="relative flex flex-col items-center justify-start p-4 pt-12 sm:pt-20 overflow-x-hidden">
+      <main className="flex flex-col items-center justify-start p-4 pt-10 sm:pt-16 overflow-x-hidden">
 
-        {/* Hero Section */}
-        <motion.div 
-          className="text-center mb-12 max-w-5xl mx-auto w-full"
-          initial="hidden"
-          animate="visible"
-          variants={heroVariants}
-        >
-           <motion.div
-             initial={{ opacity: 0, y: -20 }}
-             animate={{ opacity: 1, y: 0 }}
-             transition={{ duration: 0.6 }}
-             className="mb-6 flex justify-center gap-4 flex-wrap"
-           >
-             <div className="glass px-6 py-3 rounded-full shadow-2xl flex items-center gap-2">
-               <Globe className="w-5 h-5 text-blue-300" />
-               <span className="text-white font-semibold text-sm">AI-Powered</span>
-             </div>
-             <div className="glass px-6 py-3 rounded-full shadow-2xl flex items-center gap-2">
-               <Plane className="w-5 h-5 text-purple-300" />
-               <span className="text-white font-semibold text-sm">Instant Results</span>
-             </div>
-             <div className="glass px-6 py-3 rounded-full shadow-2xl flex items-center gap-2">
-               <Check className="w-5 h-5 text-green-300" />
-               <span className="text-white font-semibold text-sm">100% Free</span>
-             </div>
-           </motion.div>
-
-           <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black mb-6 leading-tight">
-             <span className="bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent drop-shadow-2xl block">
-               Pack Smart.
-             </span>
-             <span className="bg-gradient-to-r from-yellow-200 via-yellow-100 to-yellow-200 bg-clip-text text-transparent drop-shadow-2xl block glow-pulse">
-               Travel Light.
-             </span>
+        {/* Form Section */}
+        <div className="text-center mb-10 max-w-2xl mx-auto w-full">
+           <h1 className="text-4xl sm:text-6xl font-bold mb-4 text-white drop-shadow-lg">
+             Pack Smart. Travel Light. <span className="text-yellow-300">Never Forget</span>.
            </h1>
-           
-           <p className="text-xl sm:text-2xl text-white/95 mb-12 drop-shadow-lg font-medium max-w-3xl mx-auto leading-relaxed">
-             AI-powered packing lists in <span className="text-yellow-300 font-bold">seconds</span>. 
-             Customized for your trip, weather-aware, and absolutely <span className="text-yellow-300 font-bold">free</span>.
+           <p className="text-xl text-white/95 mb-8 drop-shadow-md">
+             AI-powered packing lists in seconds. Customized for your trip, weather-aware, and absolutely free.
            </p>
            
-           {/* How it Works - Redesigned */}
+           {/* Social Proof */}
+           <div className="flex justify-center gap-6 mb-8 text-white/90 text-sm flex-wrap">
+             <div className="flex items-center gap-2">
+               <Check className="w-5 h-5 text-green-300" />
+               <span>Trusted by travelers</span>
+             </div>
+             <div className="flex items-center gap-2">
+               <Check className="w-5 h-5 text-green-300" />
+               <span>100% Free</span>
+             </div>
+             <div className="flex items-center gap-2">
+               <Check className="w-5 h-5 text-green-300" />
+               <span>Instant Results</span>
+             </div>
+           </div>
+           
+           {/* How it Works */}
            <motion.div 
-             className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto"
+             className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-8 mb-12"
              initial="hidden"
              whileInView="visible"
              viewport={{ once: true, amount: 0.5 }}
              variants={containerVariants}
            >
               <motion.div 
-                className="glass-strong p-6 rounded-2xl shadow-2xl hover:scale-105 transition-transform duration-300" 
+                className="flex items-center gap-3 p-3 bg-white/20 backdrop-blur-md rounded-lg border border-white/30" 
                 variants={itemVariants}
               >
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-                  <Search size={32} className="text-white" />
-                </div>
-                <h3 className="text-white font-bold text-lg mb-2">Describe</h3>
-                <p className="text-white/80 text-sm">Tell us about your trip destination and duration</p>
+                <Search size={32} className="text-white flex-shrink-0" />
+                <span className="text-sm text-white font-medium text-left">1. Describe your trip</span>
               </motion.div>
-              
               <motion.div 
-                className="glass-strong p-6 rounded-2xl shadow-2xl hover:scale-105 transition-transform duration-300" 
+                className="flex items-center gap-3 p-3 bg-white/20 backdrop-blur-md rounded-lg border border-white/30" 
                 variants={itemVariants}
               >
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-                  <Cog size={32} className="text-white animate-spin" style={{ animationDuration: '3s' }} />
-                </div>
-                <h3 className="text-white font-bold text-lg mb-2">Generate</h3>
-                <p className="text-white/80 text-sm">AI creates your perfect packing list instantly</p>
+                <Cog size={32} className="text-white flex-shrink-0" />
+                <span className="text-sm text-white font-medium text-left">2. Click Generate</span>
               </motion.div>
-              
               <motion.div 
-                className="glass-strong p-6 rounded-2xl shadow-2xl hover:scale-105 transition-transform duration-300" 
+                className="flex items-center gap-3 p-3 bg-white/20 backdrop-blur-md rounded-lg border border-white/30" 
                 variants={itemVariants}
               >
-                <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-                  <ListChecks size={32} className="text-white" />
-                </div>
-                <h3 className="text-white font-bold text-lg mb-2">Pack Smart</h3>
-                <p className="text-white/80 text-sm">Check off items and export your list</p>
+                <ListChecks size={32} className="text-white flex-shrink-0" />
+                <span className="text-sm text-white font-medium text-left">3. Get your smart list!</span>
               </motion.div>
            </motion.div>
            
-           {/* Input/Button Container - Redesigned */}
-           <div className="flex flex-col gap-5 max-w-3xl mx-auto">
-               <div className="relative group">
-                 <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
-                 <input
-                   type="text"
-                   value={localInput}
-                   onChange={handleLocalInputChange}
-                   placeholder="E.g., 5 days London business trip, Weekend camping in Yosemite..."
-                   className="relative w-full px-8 py-6 text-lg bg-white/95 backdrop-blur-xl border-2 border-white/50 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/50 focus:border-white shadow-2xl placeholder:text-gray-400 font-medium transition-all"
-                   disabled={isLoading}
-                   aria-label="Trip details input"
-                   onKeyDown={(e) => { 
-                     if (e.key === 'Enter' && !isLoading && localInput.trim()) { 
-                       handleGenerateClick(); 
-                     } 
-                   }}
-                 />
-               </div>
-               
+           {/* Input/Button Container */}
+           <div className="flex flex-col gap-4">
+               <input
+                 type="text"
+                 value={localInput}
+                 onChange={handleLocalInputChange}
+                 placeholder="E.g., 5 days London business, Weekend camping trip"
+                 className="w-full px-6 py-4 text-lg bg-white/90 backdrop-blur-md border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/80 shadow-lg placeholder:text-gray-500"
+                 disabled={isLoading}
+                 aria-label="Trip details input"
+                 onKeyDown={(e) => { 
+                   if (e.key === 'Enter' && !isLoading && localInput.trim()) { 
+                     handleGenerateClick(); 
+                   } 
+                 }}
+               />
                <motion.button
                  type="button"
                  onClick={handleGenerateClick}
                  disabled={isLoading || !localInput.trim()}
-                 className="relative w-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white py-6 sm:py-7 text-xl font-black rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl hover:shadow-blue-500/50 hover:scale-[1.02] border-2 border-white/20 overflow-hidden group"
-                 whileTap={{ scale: 0.98 }}
+                 className="w-full bg-white/90 backdrop-blur-md hover:bg-white text-purple-600 py-4 sm:py-6 text-lg font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl pulse-glow border border-white/50"
+                 whileTap={{ scale: 0.97 }}
                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
                >
-                 <span className="relative z-10 flex items-center justify-center gap-3">
-                   {isLoading ? (
-                     <>
-                       <Cog className="w-6 h-6 animate-spin" />
-                       Generating Your Perfect List...
-                     </>
-                   ) : (
-                     <>
-                       <Sparkles className="w-6 h-6" />
-                       Generate My Smart List
-                       <Sparkles className="w-6 h-6" />
-                     </>
-                   )}
-                 </span>
-                 {!isLoading && localInput.trim() && (
-                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                 )}
+                 {isLoading ? "Generating..." : "Generate My List"}
                </motion.button>
            </div>
            
-           {/* Recent Searches - Redesigned */}
+           {/* Recent Searches */}
            {recentSearches.length > 0 && !isLoading && (
-             <motion.div 
-               className="mt-6 text-sm"
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               transition={{ delay: 0.5 }}
-             >
-               <span className="text-white/70 font-medium">Recent searches:</span>{" "}
+             <div className="mt-4 text-sm text-white/80 drop-shadow-md">
+               <span className="font-semibold">Recent:</span>{" "}
                {recentSearches.slice(0, 3).map((search, idx) => (
                  <React.Fragment key={idx}>
                    <button 
                      type="button" 
                      onClick={() => setLocalInput(search)} 
-                     className="glass-dark px-4 py-2 rounded-lg text-white font-semibold hover:scale-105 transition-transform inline-block mx-1 my-1"
+                     className="underline hover:text-white focus:outline-none font-medium mx-1"
                    > 
                      {search}
                    </button>
+                   {idx < Math.min(recentSearches.length, 3) - 1 && " • "}
                  </React.Fragment>
                ))}
-             </motion.div>
+             </div>
            )}
            
-           {/* Examples - Redesigned */}
-           <div className="mt-4 text-sm">
-              <span className="text-white/70 font-medium">Try:</span>{" "}
+           {/* Examples */}
+           <div className="mt-4 text-sm text-white/80 drop-shadow-md">
+              Try:{" "}
               <button 
                 type="button" 
                 onClick={() => setExampleInput('Weekend beach trip to Miami')} 
-                className="text-yellow-300 font-bold hover:text-yellow-100 underline decoration-2 underline-offset-4 transition-colors mx-2"
+                className="underline hover:text-white focus:outline-none font-semibold"
               > 
-                Beach Weekend
-              </button>
-              <span className="text-white/50">or</span>
+                Weekend beach trip 
+              </button>{" "}
+              or{" "}
               <button 
                 type="button" 
                 onClick={() => setExampleInput('10 days in Italy, sightseeing')} 
-                className="text-yellow-300 font-bold hover:text-yellow-100 underline decoration-2 underline-offset-4 transition-colors mx-2"
+                className="underline hover:text-white focus:outline-none font-semibold"
               > 
-                Italy Adventure
+                10 days in Italy 
               </button>
            </div>
-        </motion.div>
+        </div>
 
         {/* Results Section */}
         <motion.div 
-          className="mt-12 w-full max-w-7xl"
+          className="mt-8 w-full max-w-5xl"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.1 }}
-          variants={fadeSlideInVariants}
+          variants={scrollFadeInVariants}
         >
           {errorText && ( 
-            <motion.div 
-              className="glass-dark border-2 border-red-400/50 text-white px-6 py-4 rounded-2xl mb-6 max-w-2xl mx-auto shadow-2xl" 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-            > 
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-2xl">⚠️</span>
-                </div>
-                <div>
-                  <p className="font-bold mb-1">Oops! Something went wrong</p>
-                  <p className="text-sm text-white/80">{errorText}</p>
-                </div>
-              </div>
-            </motion.div> 
+            <div className="bg-red-500/90 backdrop-blur-md border border-red-300/50 text-white px-4 py-3 rounded-lg mb-4 max-w-2xl mx-auto shadow-lg"> 
+              Error: {errorText} 
+            </div> 
           )}
 
           <AnimatePresence>
@@ -648,60 +528,33 @@ export default function Home() {
                 exit={{ opacity: 0 }} 
                 transition={{ duration: 0.3 }}
               >
-                {/* Buttons Container - Redesigned */}
-                <div className="flex justify-between items-center gap-3 mb-6 flex-wrap">
+                {/* Buttons Container */}
+                <div className="flex justify-between items-center gap-2 mb-4 max-w-2xl mx-auto flex-wrap">
                   {packingItems && packingItems.length > 0 && (
-                    <div className="flex gap-3 flex-wrap">
+                    <div className="flex gap-2">
                       <button 
                         onClick={() => setGroupByCategory(!groupByCategory)}
-                        className="glass-strong px-6 py-3 text-white hover:scale-105 rounded-xl border border-white/30 transition-all shadow-xl text-sm font-bold"
+                        className="px-4 py-2 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-lg border border-white/30 transition-all shadow-lg text-sm font-medium"
                       >
-                        {groupByCategory ? '📋 Show All' : '🗂️ Group by Category'}
+                        {groupByCategory ? 'Show All' : 'Group by Category'}
                       </button>
                       <button 
                         onClick={() => setShowListEditor(!showListEditor)}
-                        className="glass-strong px-6 py-3 text-white hover:scale-105 rounded-xl border border-white/30 transition-all shadow-xl text-sm font-bold flex items-center gap-2"
+                        className="px-4 py-2 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-lg border border-white/30 transition-all shadow-lg text-sm font-medium flex items-center gap-2"
                       >
-                        <Edit size={18} />
+                        <Edit size={16} />
                         {showListEditor ? 'Hide Editor' : 'Edit List'}
                       </button>
                     </div>
                   )}
                   
-                  <div className="flex gap-3 ml-auto flex-wrap">
+                  <div className="flex gap-2 ml-auto">
                     <button 
                       onClick={handleShare}
                       disabled={!packingItems}
                       title="Share list"
                       aria-label="Share list"
-                      className="glass-strong p-3 text-white hover:scale-110 rounded-xl border border-white/30 disabled:opacity-50 transition-all shadow-xl"
-                    > 
-                      <Share2 size={20}/> 
-                    </button>
-                    <button 
-                      onClick={handleExportPDF}
-                      disabled={!packingItems}
-                      title="Export as PDF"
-                      aria-label="Export as PDF"
-                      className="glass-strong p-3 text-white hover:scale-110 rounded-xl border border-white/30 disabled:opacity-50 transition-all shadow-xl"
-                    >
-                      <FileText size={20}/>
-                    </button>
-                    <button 
-                      onClick={handleExportText}
-                      disabled={!packingItems}
-                      title="Export as text"
-                      aria-label="Export as text"
-                      className="glass-strong p-3 text-white hover:scale-110 rounded-xl border border-white/30 disabled:opacity-50 transition-all shadow-xl"
-                    >
-                      <Download size={20}/>
-                    </button>
-                    <button 
-                      onClick={handleCopy} 
-                      disabled={!rawResultText} 
-                      title="Copy JSON" 
-                      aria-label="Copy JSON" 
-                      className="glass-strong p-3 text-white hover:scale-110 rounded-xl border border-white/30 disabled:opacity-50 transition-all shadow-xl"
+                      className="p-2 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-lg border border-white/30 disabled:opacity-50 transition-all shadow-lg"
                     > 
                       <ClipboardCopy size={20}/> 
                     </button>
@@ -710,7 +563,7 @@ export default function Home() {
                       disabled={!(isLoading || packingItems)} 
                       title="Delete" 
                       aria-label="Delete" 
-                      className="glass-strong p-3 text-white hover:scale-110 rounded-xl border border-white/30 disabled:opacity-50 transition-all shadow-xl hover:bg-red-500/30"
+                      className="p-2 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-lg border border-white/30 disabled:opacity-50 transition-all shadow-lg"
                     > 
                       <Trash2 size={20}/> 
                     </button>
@@ -719,17 +572,13 @@ export default function Home() {
 
                 {/* List Editor */}
                 {showListEditor && packingItems && (
-                  <motion.div 
-                    className="mb-6"
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
+                  <div className="mb-4 max-w-2xl mx-auto">
                     <ListEditor items={packingItems} onItemsChange={setPackingItems} />
-                  </motion.div>
+                  </div>
                 )}
 
                 {/* Content Area */}
-                <div className="glass-strong rounded-3xl p-6 sm:p-8 shadow-2xl border-2 border-white/30">
+                <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 sm:p-6 shadow-xl border border-white/30">
                    {isLoading && !packingItems && (
                      <LoadingAnimation />
                    )}
@@ -737,23 +586,14 @@ export default function Home() {
                    {!isLoading && packingItems && packingItems.length > 0 && (
                      <>
                        {groupByCategory ? (
-                         <div className="space-y-12">
+                         <div className="space-y-8">
                            {Object.entries(getGroupedItems()).map(([category, items]) => (
-                             <motion.div 
-                               key={category}
-                               initial={{ opacity: 0, y: 20 }}
-                               animate={{ opacity: 1, y: 0 }}
-                               transition={{ duration: 0.5 }}
-                             >
-                               <div className="flex items-center gap-4 mb-6">
-                                 <div className="h-1 flex-grow bg-gradient-to-r from-transparent via-white/30 to-white/30 rounded"></div>
-                                 <h2 className="text-3xl font-black text-white drop-shadow-lg">
-                                   {category}
-                                 </h2>
-                                 <div className="h-1 flex-grow bg-gradient-to-r from-white/30 via-white/30 to-transparent rounded"></div>
-                               </div>
+                             <div key={category}>
+                               <h2 className="text-2xl font-bold text-white mb-4 drop-shadow-lg">
+                                 {category}
+                               </h2>
                                <motion.div
-                                 className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                                 className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
                                  variants={containerVariants} 
                                  initial="hidden" 
                                  animate="visible"
@@ -766,43 +606,43 @@ export default function Home() {
                                    return (
                                      <motion.div 
                                        key={item.item_name + index} 
-                                       className={`border-2 rounded-2xl overflow-hidden shadow-2xl bg-white flex flex-col hover:shadow-blue-500/50 transition-all ${item.checked ? 'opacity-70 border-green-400 ring-4 ring-green-400/30' : 'border-white/50'}`}
+                                       className={`border rounded-xl overflow-hidden shadow-lg bg-white flex flex-col hover:shadow-2xl transition-all ${item.checked ? 'opacity-60 border-green-500 border-2' : 'border-gray-200'}`}
                                        variants={itemVariants} 
-                                       whileHover={{ scale: 1.05, y: -8 }} 
-                                       transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                       whileHover={{ scale: 1.03, y: -2 }} 
+                                       transition={{ type: "spring", stiffness: 300, damping: 20 }} 
                                      >
-                                       <div className="w-full h-56 bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 flex items-center justify-center relative overflow-hidden group">
+                                       <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center relative overflow-hidden group">
                                          <a href={productData.product_link} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
                                             <img 
-                                              src={productData.image_link || "https://via.placeholder.com/400/e9d5ff/9333ea?text=Packmind"} 
+                                              src={productData.image_link || "https://via.placeholder.com/300/e9d5ff/9333ea?text=Packmind"} 
                                               alt={item.item_name} 
-                                              className="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-2 transition-all duration-500"
+                                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                             />
                                          </a>
                                          {isAffiliate && (
-                                             <span className="absolute top-3 right-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-xl">
-                                                 Sponsored
+                                             <span className="absolute top-3 right-3 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                                                 Ad
                                              </span>
                                          )}
                                          <button
                                            onClick={() => toggleItemChecked(globalIndex)}
-                                           className={`absolute top-3 left-3 w-10 h-10 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all border-2 ${item.checked ? 'bg-green-500 border-green-400' : 'bg-white border-white/50'}`}
+                                           className="absolute top-3 left-3 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
                                            aria-label={`Mark ${item.item_name} as ${item.checked ? 'unpacked' : 'packed'}`}
                                          >
-                                           {item.checked && <Check className="w-6 h-6 text-white font-bold" strokeWidth={3} />}
+                                           {item.checked && <Check className="w-5 h-5 text-green-600" />}
                                          </button>
                                        </div>
-                                       <div className="p-6 flex flex-col flex-grow bg-gradient-to-br from-white to-gray-50">
+                                       <div className="p-5 flex flex-col flex-grow">
                                          <a 
                                            href={productData.product_link} 
                                            target="_blank" 
                                            rel="noopener noreferrer" 
-                                           className="text-gray-900 hover:text-purple-600 hover:underline text-xl font-black mb-3 transition-colors leading-tight"
+                                           className="text-gray-900 hover:text-purple-600 hover:underline text-lg font-bold mb-2 transition-colors"
                                          >
                                              {productData.product_title}
                                          </a>
-                                         <p className="text-sm text-gray-600 flex-grow mb-4 leading-relaxed">{item.description}</p>
-                                         <span className="inline-block text-xs font-bold text-purple-700 bg-gradient-to-r from-purple-100 to-pink-100 px-4 py-2 rounded-full self-start shadow-md">
+                                         <p className="text-sm text-gray-600 flex-grow mb-3">{item.description}</p>
+                                         <span className="inline-block text-xs font-semibold text-purple-600 bg-purple-50 px-3 py-1 rounded-full self-start">
                                            {item.category}
                                          </span>
                                        </div>
@@ -810,12 +650,12 @@ export default function Home() {
                                    );
                                  })}
                                </motion.div>
-                             </motion.div>
+                             </div>
                            ))}
                          </div>
                        ) : (
                          <motion.div
-                           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
                            variants={containerVariants} 
                            initial="hidden" 
                            animate="visible"
@@ -827,43 +667,43 @@ export default function Home() {
                              return (
                                <motion.div 
                                  key={item.item_name + index} 
-                                 className={`border-2 rounded-2xl overflow-hidden shadow-2xl bg-white flex flex-col hover:shadow-blue-500/50 transition-all ${item.checked ? 'opacity-70 border-green-400 ring-4 ring-green-400/30' : 'border-white/50'}`}
-                                 variants={itemVariants}
-                                 whileHover={{ scale: 1.05, y: -8 }} 
-                                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                 className={`border rounded-xl overflow-hidden shadow-lg bg-white flex flex-col hover:shadow-2xl transition-all ${item.checked ? 'opacity-60 border-green-500 border-2' : 'border-gray-200'}`}
+                                 variants={itemVariants} 
+                                 whileHover={{ scale: 1.03, y: -2 }} 
+                                 transition={{ type: "spring", stiffness: 300, damping: 20 }} 
                                >
-                                 <div className="w-full h-56 bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 flex items-center justify-center relative overflow-hidden group">
+                                 <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center relative overflow-hidden group">
                                    <a href={productData.product_link} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
                                       <img 
-                                        src={productData.image_link || "https://via.placeholder.com/400/e9d5ff/9333ea?text=Packmind"} 
+                                        src={productData.image_link || "https://via.placeholder.com/300/e9d5ff/9333ea?text=Packmind"} 
                                         alt={item.item_name} 
-                                        className="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-2 transition-all duration-500"
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                       />
                                    </a>
                                    {isAffiliate && (
-                                       <span className="absolute top-3 right-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-xl">
-                                           Sponsored
+                                       <span className="absolute top-3 right-3 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                                           Ad
                                        </span>
                                    )}
                                    <button
                                      onClick={() => toggleItemChecked(index)}
-                                     className={`absolute top-3 left-3 w-10 h-10 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all border-2 ${item.checked ? 'bg-green-500 border-green-400' : 'bg-white border-white/50'}`}
+                                     className="absolute top-3 left-3 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
                                      aria-label={`Mark ${item.item_name} as ${item.checked ? 'unpacked' : 'packed'}`}
                                    >
-                                     {item.checked && <Check className="w-6 h-6 text-white font-bold" strokeWidth={3} />}
+                                     {item.checked && <Check className="w-5 h-5 text-green-600" />}
                                    </button>
                                  </div>
-                                 <div className="p-6 flex flex-col flex-grow bg-gradient-to-br from-white to-gray-50">
+                                 <div className="p-5 flex flex-col flex-grow">
                                    <a 
                                      href={productData.product_link} 
                                      target="_blank" 
                                      rel="noopener noreferrer" 
-                                     className="text-gray-900 hover:text-purple-600 hover:underline text-xl font-black mb-3 transition-colors leading-tight"
+                                     className="text-gray-900 hover:text-purple-600 hover:underline text-lg font-bold mb-2 transition-colors"
                                    >
                                        {productData.product_title}
                                    </a>
-                                   <p className="text-sm text-gray-600 flex-grow mb-4 leading-relaxed">{item.description}</p>
-                                   <span className="inline-block text-xs font-bold text-purple-700 bg-gradient-to-r from-purple-100 to-pink-100 px-4 py-2 rounded-full self-start shadow-md">
+                                   <p className="text-sm text-gray-600 flex-grow mb-3">{item.description}</p>
+                                   <span className="inline-block text-xs font-semibold text-purple-600 bg-purple-50 px-3 py-1 rounded-full self-start">
                                      {item.category}
                                    </span>
                                  </div>
@@ -876,7 +716,7 @@ export default function Home() {
                    )}
                    
                    {!isLoading && packingItems && packingItems.length === 0 && (
-                      <p className="text-white text-center italic text-lg">No packing items generated for this trip.</p>
+                      <p className="text-white text-center italic">No packing items generated for this trip.</p>
                    )}
                 </div>
               </motion.div>
@@ -889,9 +729,9 @@ export default function Home() {
                  animate={{ opacity: 1 }} 
                  exit={{ opacity: 0 }}
                >
-                 <div className="glass-strong rounded-3xl p-12 shadow-2xl max-w-2xl mx-auto border-2 border-white/30">
-                   <p className="text-white text-center text-lg font-medium">
-                     {showResult ? "✨ Your packing list will appear here..." : "🗑️ Result cleared."}
+                 <div className="bg-white/20 backdrop-blur-md rounded-lg p-6 shadow-xl max-w-2xl mx-auto border border-white/30">
+                   <p className="text-white text-center italic">
+                     {showResult ? "Your packing list will appear here..." : "Result cleared."}
                    </p>
                  </div>
                </motion.div>
@@ -901,58 +741,68 @@ export default function Home() {
         </motion.div>
       </main>
       
-      {/* Footer with CTA - Redesigned */}
-      <footer className="mt-24 pb-16">
-        <div className="max-w-5xl mx-auto px-4">
-          <motion.div 
-            className="glass-strong rounded-3xl p-10 sm:p-12 border-2 border-white/30 shadow-2xl relative overflow-hidden"
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl"></div>
-            
-            <div className="relative z-10">
-              <h2 className="text-3xl sm:text-4xl font-black text-white mb-4 drop-shadow-lg text-center">
-                {emailCaptured ? '🎉 Love Packmind AI?' : '✨ Ready for Perfect Packing?'}
-              </h2>
-              <p className="text-white/90 mb-8 text-lg sm:text-xl drop-shadow-md text-center max-w-2xl mx-auto leading-relaxed">
-                {emailCaptured 
-                  ? "Share it with your travel buddies and help them pack smarter too!"
-                  : "Join thousands of smart travelers and never forget essentials again!"
-                }
-              </p>
-              <div className="flex justify-center">
-                {emailCaptured ? (
-                  <button
-                    onClick={handleShare}
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-10 py-4 rounded-2xl font-black text-lg hover:scale-105 transition-all shadow-2xl flex items-center gap-3"
-                  >
-                    <Share2 className="w-6 h-6" />
-                    Share Packmind AI
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setShowEmailModal(true)}
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-10 py-4 rounded-2xl font-black text-lg hover:scale-105 transition-all shadow-2xl flex items-center gap-3"
-                  >
-                    <Sparkles className="w-6 h-6" />
-                    Get Free Packing Guide
-                  </button>
-                )}
-              </div>
-            </div>
-          </motion.div>
+      {/* Footer with CTA */}
+      <footer className="mt-20 pb-10 text-center">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="bg-white/20 backdrop-blur-md rounded-xl p-8 border border-white/30 shadow-xl">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 drop-shadow-lg">
+              Love Packmind AI?
+            </h2>
+            <p className="text-white/90 mb-6 text-lg drop-shadow-md">
+              {emailCaptured 
+                ? "Share it with your travel buddies and never forget anything again!"
+                : "Join our community and get exclusive packing tips!"
+              }
+            </p>
+            {emailCaptured ? (
+              <button
+                onClick={handleShare}
+                className="bg-white text-purple-600 px-8 py-3 rounded-lg font-bold hover:bg-purple-50 transition-all shadow-lg hover:shadow-xl"
+              >
+                Share Packmind AI
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowEmailModal(true)}
+                className="bg-white text-purple-600 px-8 py-3 rounded-lg font-bold hover:bg-purple-50 transition-all shadow-lg hover:shadow-xl"
+              >
+                Get Free Packing Guide
+              </button>
+            )}
+          </div>
           
-          <div className="mt-10 text-center">
-            <p className="text-white/60 text-sm font-medium">© 2025 Packmind AI</p>
-            <p className="text-white/40 text-xs mt-2">Made with ❤️ for travelers worldwide</p>
+          <div className="mt-8 text-white/70 text-sm">
+            <p>© 2025 Packmind AI. Made with ❤️ for travelers.</p>
           </div>
         </div>
       </footer>
     </div>
   );
-}
+}-50 transition-all shadow-lg"
+                    >
+                      <Share2 size={20}/>
+                    </button>
+                    <button 
+                      onClick={handleExportPDF}
+                      disabled={!packingItems}
+                      title="Export as PDF"
+                      aria-label="Export as PDF"
+                      className="p-2 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-lg border border-white/30 disabled:opacity-50 transition-all shadow-lg"
+                    >
+                      <FileText size={20}/>
+                    </button>
+                    <button 
+                      onClick={handleExportText}
+                      disabled={!packingItems}
+                      title="Export as text"
+                      aria-label="Export as text"
+                      className="p-2 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-lg border border-white/30 disabled:opacity-50 transition-all shadow-lg"
+                    >
+                      <Download size={20}/>
+                    </button>
+                    <button 
+                      onClick={handleCopy} 
+                      disabled={!rawResultText} 
+                      title="Copy JSON" 
+                      aria-label="Copy JSON" 
+                      className="p-2 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-lg border border-white/30 disabled:opacity

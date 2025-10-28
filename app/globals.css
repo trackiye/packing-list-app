@@ -44,6 +44,40 @@
   }
 }
 
+@keyframes float-animation {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  25% {
+    transform: translateY(-20px) translateX(10px);
+  }
+  50% {
+    transform: translateY(-10px) translateX(-10px);
+  }
+  75% {
+    transform: translateY(-30px) translateX(5px);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.8)) drop-shadow(0 0 30px rgba(251, 191, 36, 0.4));
+  }
+}
+
+/* --- NEW: Gradient Text Animation --- */
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
 /* --- UTILITY CLASSES --- */
 .animated-gradient {
   background-size: 400% 400%;
@@ -58,6 +92,20 @@
   animation: fadeInUp 0.6s ease-out;
 }
 
+.float-animation {
+  animation: float-animation 6s ease-in-out infinite;
+}
+
+.glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 /* --- SMOOTH SCROLLING --- */
 html {
   scroll-behavior: smooth;
@@ -65,8 +113,8 @@ html {
 
 /* --- CUSTOM SCROLLBAR --- */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-track {
@@ -75,20 +123,20 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(168, 85, 247, 0.5);
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.6), rgba(139, 92, 246, 0.6));
   border-radius: 10px;
   transition: background 0.3s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(168, 85, 247, 0.8);
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.9), rgba(139, 92, 246, 0.9));
 }
 
 /* --- FOCUS STYLES FOR ACCESSIBILITY --- */
 *:focus-visible {
-  outline: 2px solid rgba(168, 85, 247, 0.6);
-  outline-offset: 2px;
-  border-radius: 4px;
+  outline: 3px solid rgba(59, 130, 246, 0.6);
+  outline-offset: 3px;
+  border-radius: 8px;
 }
 
 /* --- PRINT STYLES --- */
@@ -120,20 +168,22 @@ html {
 
 /* --- GLASS MORPHISM UTILITIES --- */
 .glass {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
 }
 
 .glass-strong {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
 }
 
 /* --- SELECTION STYLES --- */
 ::selection {
-  background-color: rgba(168, 85, 247, 0.3);
+  background-color: rgba(59, 130, 246, 0.4);
   color: white;
 }
 
@@ -150,6 +200,11 @@ html {
   }
 }
 
+/* --- SCROLL MARGIN FOR ANCHORS --- */
+.scroll-mt-24 {
+  scroll-margin-top: 6rem;
+}
+
 /* --- REDUCED MOTION --- */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -159,5 +214,11 @@ html {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  
+  .float-animation,
+  .glow-pulse,
+  .animated-gradient {
+    animation: none !important;
   }
 }
