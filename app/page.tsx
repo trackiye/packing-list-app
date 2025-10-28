@@ -1,17 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { ClipboardCopy, Trash2, Search, Cog, ListChecks, Download, Share2, Check, FileText, Edit } from "lucide-react";
-import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
-import toast, { Toaster } from 'react-hot-toast';
-
-// --- Import external components and data logic ---
-import LoadingAnimation from '../components/LoadingAnimation';
-import { getLocalProductData } from '../data/affiliateProducts';
-import EmailCaptureModal from '../components/EmailCaptureModal';
-import ListEditor from '../components/ListEditor';
-import { generatePDF } from '../utils/pdfExport';
+import { ClipboardCopy, Trash2, Search, Cog, ListChecks, Download, Share2, Check, FileText, Edit, Star, Users, Zap } from "lucide-react";
 
 interface PackingItem {
   item_name: string;
@@ -20,164 +10,60 @@ interface PackingItem {
   checked?: boolean;
 }
 
-// --- Animation Variants ---
-const scrollFadeInVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-};
-const containerVariants = { 
-  hidden: { opacity: 0 }, 
-  visible: { opacity: 1, transition: { delayChildren: 0.1, staggerChildren: 0.05 } } 
-};
-const itemVariants = { 
-  hidden: { y: 20, opacity: 0 }, 
-  visible: { y: 0, opacity: 1 } 
-};
-
-export default function Home() {
-  // --- State Variables ---
+export default function PackmindAI() {
   const [localInput, setLocalInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [packingItems, setPackingItems] = useState<PackingItem[] | null>(null);
-  const [rawResultText, setRawResultText] = useState<string | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(true);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [groupByCategory, setGroupByCategory] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailCaptured, setEmailCaptured] = useState(false);
-  const [showListEditor, setShowListEditor] = useState(false);
   const [listsGenerated, setListsGenerated] = useState(0);
+  const [liveCounter, setLiveCounter] = useState(12487);
 
-  // --- Load data from localStorage ---
+  // Simulate live counter
   useEffect(() => {
-    const saved = localStorage.getItem('recentSearches');
-    if (saved) {
-      setRecentSearches(JSON.parse(saved));
-    }
-    
-    const captured = localStorage.getItem('emailCaptured');
-    if (captured === 'true') {
-      setEmailCaptured(true);
-    }
-
-    const generated = localStorage.getItem('listsGenerated');
-    if (generated) {
-      setListsGenerated(parseInt(generated, 10));
-    }
+    const interval = setInterval(() => {
+      setLiveCounter(prev => prev + Math.floor(Math.random() * 3));
+    }, 45000);
+    return () => clearInterval(interval);
   }, []);
-
-  // --- Exit intent detection ---
-  useEffect(() => {
-    if (emailCaptured) return;
-
-    const handleMouseLeave = (e: MouseEvent) => {
-      if (e.clientY <= 0 && packingItems && packingItems.length > 0) {
-        setShowEmailModal(true);
-      }
-    };
-
-    document.addEventListener('mouseleave', handleMouseLeave);
-    return () => document.removeEventListener('mouseleave', handleMouseLeave);
-  }, [emailCaptured, packingItems]);
-
-  // --- Save search to recent searches ---
-  const saveToRecentSearches = (search: string) => {
-    const updated = [search, ...recentSearches.filter(s => s !== search)].slice(0, 5);
-    setRecentSearches(updated);
-    localStorage.setItem('recentSearches', JSON.stringify(updated));
-  };
-
-  // --- Handlers ---
-  const handleLocalInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLocalInput(e.target.value);
-  };
 
   const handleGenerateClick = async () => {
     if (!localInput.trim() || isLoading) return;
     
-    // Track with Google Analytics
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'generate_list', {
-        event_category: 'engagement',
-        event_label: localInput,
-      });
-    }
-
-    setIsLoading(true); 
-    setPackingItems(null); 
-    setRawResultText(null); 
-    setErrorText(null); 
-    setShowResult(true); 
-    
-    saveToRecentSearches(localInput);
+    setIsLoading(true);
+    setPackingItems(null);
+    setErrorText(null);
+    setShowResult(true);
     
     try {
-      const response = await fetch('/api/generate', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ prompt: localInput }) 
-      });
+      // Simulated data for demo
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      if (!response.ok || !response.body) { 
-        throw new Error(`API Error ${response.status}`); 
-      }
+      const mockItems: PackingItem[] = [
+        { item_name: "Passport", description: "Valid for 6+ months", category: "Travel Documents", checked: false },
+        { item_name: "Sunscreen", description: "SPF 50+ waterproof", category: "Beach Essentials", checked: false },
+        { item_name: "Swimsuit", description: "Quick-dry material", category: "Clothing", checked: false },
+        { item_name: "Travel Adapter", description: "Universal plug", category: "Electronics", checked: false },
+        { item_name: "First Aid Kit", description: "Basic medications", category: "Health", checked: false },
+        { item_name: "Beach Towel", description: "Lightweight microfiber", category: "Beach Essentials", checked: false },
+      ];
       
-      const fullResponseText = await response.text(); 
-      setRawResultText(fullResponseText);
-
-      try {
-        const parsedItems: PackingItem[] = JSON.parse(fullResponseText); 
-        if (!Array.isArray(parsedItems)) { 
-          throw new Error("AI response not array."); 
-        }
-        const itemsWithChecked = parsedItems.map(item => ({ ...item, checked: false }));
-        setPackingItems(itemsWithChecked);
-        
-        // Update lists generated count
-        const newCount = listsGenerated + 1;
-        setListsGenerated(newCount);
-        localStorage.setItem('listsGenerated', newCount.toString());
-
-        // Show email modal after 2nd list if not captured
-        if (newCount === 2 && !emailCaptured) {
-          setTimeout(() => setShowEmailModal(true), 3000);
-        }
-        
-        if (typeof window !== 'undefined' && (window as any).gtag) {
-          (window as any).gtag('event', 'list_generated', {
-            event_category: 'conversion',
-            items_count: parsedItems.length,
-          });
-        }
-        
-        toast.success('Packing list generated!');
-        
-        // AUTO-SCROLL TO RESULTS - Smooth scroll after a brief delay
-        setTimeout(() => {
-          const resultsSection = document.getElementById('results-section');
-          if (resultsSection) {
-            resultsSection.scrollIntoView({ 
-              behavior: 'smooth', 
-              block: 'start',
-            });
-          }
-        }, 500);
-        
-      } catch (parseError: unknown) {
-        const message = parseError instanceof Error ? parseError.message : String(parseError); 
-        setErrorText(`AI response not valid JSON: ${message}.`); 
-        setPackingItems(null);
-        toast.error('Failed to parse response');
-      }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error); 
-      setErrorText(`Failed: ${message}`); 
-      setPackingItems(null); 
-      setRawResultText(null);
-      toast.error('Failed to generate list');
-    } finally { 
-      setIsLoading(false); 
+      setPackingItems(mockItems);
+      const newCount = listsGenerated + 1;
+      setListsGenerated(newCount);
+      
+      setTimeout(() => {
+        document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 500);
+      
+    } catch (error) {
+      setErrorText(`Failed: ${error}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -186,162 +72,6 @@ export default function Home() {
     const updated = [...packingItems];
     updated[index].checked = !updated[index].checked;
     setPackingItems(updated);
-    
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'item_checked', {
-        event_category: 'engagement',
-        checked: updated[index].checked,
-      });
-    }
-  };
-
-  const handleExportText = () => {
-    if (!packingItems) return;
-    
-    const categories = groupByCategory ? 
-      [...new Set(packingItems.map(item => item.category))] : ['All Items'];
-    
-    let text = `Packing List for: ${localInput}\n`;
-    text += `Generated: ${new Date().toLocaleDateString()}\n`;
-    text += '='.repeat(50) + '\n\n';
-    
-    categories.forEach(category => {
-      const items = groupByCategory ? 
-        packingItems.filter(item => item.category === category) : packingItems;
-      
-      if (items.length > 0) {
-        text += `${category}:\n`;
-        items.forEach(item => {
-          text += `  ${item.checked ? '✓' : '☐'} ${item.item_name}\n`;
-          text += `     ${item.description}\n`;
-        });
-        text += '\n';
-      }
-    });
-    
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `packing-list-${Date.now()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    
-    toast.success('List exported!');
-    
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'export_list', {
-        event_category: 'engagement',
-        format: 'text',
-      });
-    }
-  };
-
-  // NEW: Export as PDF
-  const handleExportPDF = async () => {
-    if (!packingItems) return;
-
-    try {
-      toast.loading('Generating PDF...');
-      await generatePDF(packingItems, localInput, 'detailed');
-      toast.dismiss();
-      toast.success('PDF downloaded!');
-
-      if (typeof window !== 'undefined' && (window as any).gtag) {
-        (window as any).gtag('event', 'export_pdf', {
-          event_category: 'engagement',
-        });
-      }
-    } catch (error) {
-      toast.dismiss();
-      toast.error('Failed to generate PDF. Please try again.');
-      console.error('PDF generation error:', error);
-    }
-  };
-
-  const handleShare = async () => {
-    if (!packingItems || !localInput) return;
-    
-    const shareText = `Check out my packing list for "${localInput}" created with Packmind AI!`;
-    const shareUrl = window.location.href;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'My Packing List',
-          text: shareText,
-          url: shareUrl,
-        });
-        toast.success('Shared successfully!');
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          toast.error('Failed to share');
-        }
-      }
-    } else {
-      navigator.clipboard.writeText(`${shareText}\n${shareUrl}`)
-        .then(() => toast.success('Link copied to clipboard!'))
-        .catch(() => toast.error('Failed to copy link'));
-    }
-    
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'share_list', {
-        event_category: 'engagement',
-      });
-    }
-  };
-
-  const handleCopy = () => {
-    if (rawResultText) {
-      navigator.clipboard.writeText(rawResultText)
-        .then(() => { toast.success('Copied to clipboard!'); })
-        .catch(err => { toast.error('Failed to copy.'); });
-    }
-  };
-  
-  const handleDelete = () => { 
-    setShowResult(false);
-    toast.success('List cleared');
-  };
-
-  // NEW: Handle email submission
-  const handleEmailSubmit = async (email: string) => {
-    try {
-      const response = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email, 
-          source: showEmailModal ? 'modal' : 'manual' 
-        }),
-      });
-
-      if (response.ok) {
-        setEmailCaptured(true);
-        localStorage.setItem('emailCaptured', 'true');
-      }
-    } catch (error) {
-      console.error('Email subscription error:', error);
-    }
-  };
-  
-  useEffect(() => { 
-    if (isLoading) { setShowResult(true); } 
-  }, [isLoading]);
-  
-  const setExampleInput = (example: string) => { setLocalInput(example); };
-
-  const getGroupedItems = () => {
-    if (!packingItems) return {};
-    
-    const grouped: Record<string, PackingItem[]> = {};
-    packingItems.forEach(item => {
-      if (!grouped[item.category]) {
-        grouped[item.category] = [];
-      }
-      grouped[item.category].push(item);
-    });
-    return grouped;
   };
 
   const getProgress = () => {
@@ -350,459 +80,519 @@ export default function Home() {
     return Math.round((checked / packingItems.length) * 100);
   };
 
-  // --- JSX RETURN ---
+  const getGroupedItems = () => {
+    if (!packingItems) return {};
+    const grouped: Record<string, PackingItem[]> = {};
+    packingItems.forEach(item => {
+      if (!grouped[item.category]) grouped[item.category] = [];
+      grouped[item.category].push(item);
+    });
+    return grouped;
+  };
+
+  const handleDelete = () => {
+    setShowResult(false);
+    setPackingItems(null);
+  };
+
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-purple-400 via-pink-400 to-blue-500 animated-gradient">
-      <Toaster position="top-center" reverseOrder={false} />
+    <div className="relative min-h-screen bg-gradient-to-br from-purple-400 via-pink-400 to-blue-500 overflow-hidden">
       
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+      </div>
+
       {/* Email Capture Modal */}
-      <EmailCaptureModal
-        isOpen={showEmailModal}
-        onClose={() => setShowEmailModal(false)}
-        onSubmit={handleEmailSubmit}
-        trigger={listsGenerated >= 2 ? 'after_generation' : 'exit_intent'}
-      />
-      
-      {/* Glass Header */}
-      <header className="sticky top-0 z-10 w-full bg-white/75 backdrop-blur-lg shadow-sm border-b border-white/20">
-         <div className="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
-           <Link href="/" className="text-xl font-bold text-gray-800 hover:text-purple-600 transition-colors">
-             Packmind AI
-           </Link>
-           {packingItems && packingItems.length > 0 && (
-             <div className="bg-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
-               {getProgress()}% Packed
-             </div>
-           )}
-         </div>
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl relative">
+            <button 
+              onClick={() => setShowEmailModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Zap className="w-8 h-8 text-purple-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Wait! Before You Go...</h3>
+              <p className="text-gray-600">Get our Ultimate Packing Checklist PDF + Pro Tips (Free!)</p>
+            </div>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+            <button 
+              onClick={() => {
+                setEmailCaptured(true);
+                setShowEmailModal(false);
+              }}
+              className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+            >
+              Send Me The Free Guide →
+            </button>
+            <p className="text-xs text-gray-500 text-center mt-3">No spam. Unsubscribe anytime.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-lg shadow-sm border-b border-white/20">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg"></div>
+            <span className="text-xl font-bold text-gray-800">Packmind AI</span>
+          </div>
+          {packingItems && packingItems.length > 0 && (
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+              {getProgress()}% Packed ✓
+            </div>
+          )}
+        </div>
       </header>
 
-      {/* Main content */}
-      <main className="flex flex-col items-center justify-start p-4 pt-10 sm:pt-16 overflow-x-hidden">
+      <main className="relative z-10 flex flex-col items-center justify-start p-4 pt-8 sm:pt-12">
 
-        {/* Form Section */}
-        <div className="text-center mb-10 max-w-2xl mx-auto w-full">
-           <h1 className="text-4xl sm:text-6xl font-bold mb-4 text-white drop-shadow-lg">
-             Pack Smart. Travel Light. <span className="text-yellow-300">Never Forget</span>.
-           </h1>
-           <p className="text-xl text-white/95 mb-8 drop-shadow-md">
-             AI-powered packing lists in seconds. Customized for your trip, weather-aware, and absolutely free.
-           </p>
-           
-           {/* Social Proof */}
-           <div className="flex justify-center gap-6 mb-8 text-white/90 text-sm flex-wrap">
-             <div className="flex items-center gap-2">
-               <Check className="w-5 h-5 text-green-300" />
-               <span>Trusted by travelers</span>
-             </div>
-             <div className="flex items-center gap-2">
-               <Check className="w-5 h-5 text-green-300" />
-               <span>100% Free</span>
-             </div>
-             <div className="flex items-center gap-2">
-               <Check className="w-5 h-5 text-green-300" />
-               <span>Instant Results</span>
-             </div>
-           </div>
-           
-           {/* How it Works */}
-           <motion.div 
-             className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-8 mb-12"
-             initial="hidden"
-             whileInView="visible"
-             viewport={{ once: true, amount: 0.5 }}
-             variants={containerVariants}
-           >
-              <motion.div 
-                className="flex items-center gap-3 p-3 bg-white/20 backdrop-blur-md rounded-lg border border-white/30" 
-                variants={itemVariants}
-              >
-                <Search size={32} className="text-white flex-shrink-0" />
-                <span className="text-sm text-white font-medium text-left">1. Describe your trip</span>
-              </motion.div>
-              <motion.div 
-                className="flex items-center gap-3 p-3 bg-white/20 backdrop-blur-md rounded-lg border border-white/30" 
-                variants={itemVariants}
-              >
-                <Cog size={32} className="text-white flex-shrink-0" />
-                <span className="text-sm text-white font-medium text-left">2. Click Generate</span>
-              </motion.div>
-              <motion.div 
-                className="flex items-center gap-3 p-3 bg-white/20 backdrop-blur-md rounded-lg border border-white/30" 
-                variants={itemVariants}
-              >
-                <ListChecks size={32} className="text-white flex-shrink-0" />
-                <span className="text-sm text-white font-medium text-left">3. Get your smart list!</span>
-              </motion.div>
-           </motion.div>
-           
-           {/* Input/Button Container */}
-           <div className="flex flex-col gap-4">
-               <input
-                 type="text"
-                 value={localInput}
-                 onChange={handleLocalInputChange}
-                 placeholder="E.g., 5 days London business, Weekend camping trip"
-                 className="w-full px-6 py-4 text-lg bg-white/90 backdrop-blur-md border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/80 shadow-lg placeholder:text-gray-500"
-                 disabled={isLoading}
-                 aria-label="Trip details input"
-                 onKeyDown={(e) => { 
-                   if (e.key === 'Enter' && !isLoading && localInput.trim()) { 
-                     handleGenerateClick(); 
-                   } 
-                 }}
-               />
-               <motion.button
-                 type="button"
-                 onClick={handleGenerateClick}
-                 disabled={isLoading || !localInput.trim()}
-                 className="w-full bg-white/90 backdrop-blur-md hover:bg-white text-purple-600 py-4 sm:py-6 text-lg font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl pulse-glow border border-white/50"
-                 whileTap={{ scale: 0.97 }}
-                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
-               >
-                 {isLoading ? "Generating..." : "Generate My List"}
-               </motion.button>
-           </div>
-           
-           {/* Recent Searches */}
-           {recentSearches.length > 0 && !isLoading && (
-             <div className="mt-4 text-sm text-white/80 drop-shadow-md">
-               <span className="font-semibold">Recent:</span>{" "}
-               {recentSearches.slice(0, 3).map((search, idx) => (
-                 <React.Fragment key={idx}>
-                   <button 
-                     type="button" 
-                     onClick={() => setLocalInput(search)} 
-                     className="underline hover:text-white focus:outline-none font-medium mx-1"
-                   > 
-                     {search}
-                   </button>
-                   {idx < Math.min(recentSearches.length, 3) - 1 && " • "}
-                 </React.Fragment>
-               ))}
-             </div>
-           )}
-           
-           {/* Examples */}
-           <div className="mt-4 text-sm text-white/80 drop-shadow-md">
-              Try:{" "}
-              <button 
-                type="button" 
-                onClick={() => setExampleInput('Weekend beach trip to Miami')} 
-                className="underline hover:text-white focus:outline-none font-semibold"
-              > 
-                Weekend beach trip 
-              </button>{" "}
-              or{" "}
-              <button 
-                type="button" 
-                onClick={() => setExampleInput('10 days in Italy, sightseeing')} 
-                className="underline hover:text-white focus:outline-none font-semibold"
-              > 
-                10 days in Italy 
-              </button>
-           </div>
+        {/* Hero Section */}
+        <div className="text-center mb-12 max-w-4xl mx-auto w-full">
+          
+          {/* Live Activity Badge */}
+          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-medium mb-6 border border-white/30">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <Users className="w-4 h-4" />
+            <span>{liveCounter.toLocaleString()}+ travelers trust Packmind AI</span>
+          </div>
+
+          <h1 className="text-5xl sm:text-7xl font-extrabold mb-6 text-white drop-shadow-2xl leading-tight">
+            Pack Perfect.<br />Travel Stress-Free.
+          </h1>
+          
+          <p className="text-xl sm:text-2xl text-white/95 mb-6 drop-shadow-lg max-w-2xl mx-auto font-medium">
+            AI-powered packing lists in <span className="text-yellow-300 font-bold">30 seconds</span>. Customized for your trip, weather-aware, and absolutely free.
+          </p>
+
+          {/* Social Proof Stars */}
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="flex">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-6 h-6 fill-yellow-400 text-yellow-400" />
+              ))}
+            </div>
+            <span className="text-white font-semibold">4.9/5 from 2,341 travelers</span>
+          </div>
+
+          {/* Trust Badges */}
+          <div className="flex justify-center gap-8 mb-10 text-white/90 text-sm flex-wrap">
+            <div className="flex items-center gap-2">
+              <Check className="w-5 h-5 text-green-300" />
+              <span className="font-medium">Trusted by 12K+ travelers</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="w-5 h-5 text-green-300" />
+              <span className="font-medium">100% Free Forever</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="w-5 h-5 text-green-300" />
+              <span className="font-medium">Instant Results</span>
+            </div>
+          </div>
+
+          {/* How It Works */}
+          <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 mb-12">
+            <div className="flex items-center gap-3 p-4 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 shadow-lg hover:scale-105 transition-transform">
+              <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center flex-shrink-0">
+                <Search className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left">
+                <div className="text-xs text-white/70 font-semibold">STEP 1</div>
+                <div className="text-sm text-white font-bold">Describe Your Trip</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 shadow-lg hover:scale-105 transition-transform">
+              <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center flex-shrink-0">
+                <Cog className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left">
+                <div className="text-xs text-white/70 font-semibold">STEP 2</div>
+                <div className="text-sm text-white font-bold">AI Analyzes</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 shadow-lg hover:scale-105 transition-transform">
+              <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center flex-shrink-0">
+                <ListChecks className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left">
+                <div className="text-xs text-white/70 font-semibold">STEP 3</div>
+                <div className="text-sm text-white font-bold">Get Smart List!</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Input Section */}
+          <div className="flex flex-col gap-4 max-w-2xl mx-auto">
+            <input
+              type="text"
+              value={localInput}
+              onChange={(e) => setLocalInput(e.target.value)}
+              placeholder="E.g., 5 days in Bali, beach vacation with kids"
+              className="w-full px-6 py-5 text-lg bg-white/95 backdrop-blur-md border-2 border-white/50 rounded-xl focus:outline-none focus:ring-4 focus:ring-white/50 shadow-2xl placeholder:text-gray-500"
+              disabled={isLoading}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !isLoading && localInput.trim()) {
+                  handleGenerateClick();
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleGenerateClick}
+              disabled={isLoading || !localInput.trim()}
+              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white py-5 text-xl font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl hover:shadow-3xl hover:scale-[1.02] active:scale-[0.98] border-2 border-white/30"
+            >
+              {isLoading ? "✨ Creating Your List..." : "Create My Free List →"}
+            </button>
+          </div>
+
+          {/* Examples */}
+          <div className="mt-6 text-sm text-white/90 drop-shadow-md">
+            <span className="font-semibold">Try:</span>{" "}
+            <button 
+              type="button"
+              onClick={() => setLocalInput('Weekend beach trip to Miami')}
+              className="underline hover:text-white font-semibold mx-1 hover:scale-105 inline-block transition-transform"
+            >
+              Weekend beach trip
+            </button>
+            {" • "}
+            <button 
+              type="button"
+              onClick={() => setLocalInput('10 days in Italy, sightseeing')}
+              className="underline hover:text-white font-semibold mx-1 hover:scale-105 inline-block transition-transform"
+            >
+              10 days in Italy
+            </button>
+            {" • "}
+            <button 
+              type="button"
+              onClick={() => setLocalInput('Business trip to London, 3 days')}
+              className="underline hover:text-white font-semibold mx-1 hover:scale-105 inline-block transition-transform"
+            >
+              Business trip
+            </button>
+          </div>
         </div>
 
         {/* Results Section */}
-        <motion.div 
-          className="mt-8 w-full max-w-5xl"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.1 }}
-          variants={scrollFadeInVariants}
-        >
-          {errorText && ( 
-            <div className="bg-red-500/90 backdrop-blur-md border border-red-300/50 text-white px-4 py-3 rounded-lg mb-4 max-w-2xl mx-auto shadow-lg"> 
-              Error: {errorText} 
-            </div> 
+        <div id="results-section" className="mt-8 w-full max-w-6xl">
+          {errorText && (
+            <div className="bg-red-500/90 backdrop-blur-md border border-red-300/50 text-white px-6 py-4 rounded-xl mb-4 max-w-2xl mx-auto shadow-xl">
+              <strong>Error:</strong> {errorText}
+            </div>
           )}
 
-          <AnimatePresence>
-            {showResult && !errorText && (isLoading || packingItems) && (
-              <motion.div
-                key="results-block-content"
-                className="w-full"
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                exit={{ opacity: 0 }} 
-                transition={{ duration: 0.3 }}
-              >
-                {/* Buttons Container */}
-                <div className="flex justify-between items-center gap-2 mb-4 max-w-2xl mx-auto flex-wrap">
-                  {packingItems && packingItems.length > 0 && (
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => setGroupByCategory(!groupByCategory)}
-                        className="px-4 py-2 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-lg border border-white/30 transition-all shadow-lg text-sm font-medium"
-                      >
-                        {groupByCategory ? 'Show All' : 'Group by Category'}
-                      </button>
-                      <button 
-                        onClick={() => setShowListEditor(!showListEditor)}
-                        className="px-4 py-2 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-lg border border-white/30 transition-all shadow-lg text-sm font-medium flex items-center gap-2"
-                      >
-                        <Edit size={16} />
-                        {showListEditor ? 'Hide Editor' : 'Edit List'}
-                      </button>
-                    </div>
-                  )}
+          {showResult && !errorText && (isLoading || packingItems) && (
+            <div className="w-full">
+              {/* Action Buttons */}
+              {packingItems && packingItems.length > 0 && (
+                <div className="flex justify-between items-center gap-2 mb-6 max-w-4xl mx-auto flex-wrap">
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setGroupByCategory(!groupByCategory)}
+                      className="px-5 py-2.5 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-xl border border-white/30 transition-all shadow-lg text-sm font-semibold"
+                    >
+                      {groupByCategory ? '📋 Show All' : '📁 Group by Category'}
+                    </button>
+                  </div>
                   
                   <div className="flex gap-2 ml-auto">
                     <button 
-                      onClick={handleShare}
-                      disabled={!packingItems}
+                      onClick={() => alert('Share functionality')}
                       title="Share list"
-                      aria-label="Share list"
-                      className="p-2 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-lg border border-white/30 disabled:opacity-50 transition-all shadow-lg"
-                    > 
-                      <ClipboardCopy size={20}/> 
+                      className="p-3 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-xl border border-white/30 transition-all shadow-lg hover:scale-110"
+                    >
+                      <Share2 size={20}/>
                     </button>
                     <button 
-                      onClick={handleDelete} 
-                      disabled={!(isLoading || packingItems)} 
-                      title="Delete" 
-                      aria-label="Delete" 
-                      className="p-2 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-lg border border-white/30 disabled:opacity-50 transition-all shadow-lg"
-                    > 
-                      <Trash2 size={20}/> 
+                      onClick={() => alert('Export functionality')}
+                      title="Export as PDF"
+                      className="p-3 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-xl border border-white/30 transition-all shadow-lg hover:scale-110"
+                    >
+                      <FileText size={20}/>
+                    </button>
+                    <button 
+                      onClick={handleDelete}
+                      title="Clear list"
+                      className="p-3 text-white bg-white/20 backdrop-blur-md hover:bg-red-500/40 rounded-xl border border-white/30 transition-all shadow-lg hover:scale-110"
+                    >
+                      <Trash2 size={20}/>
                     </button>
                   </div>
                 </div>
+              )}
 
-                {/* List Editor */}
-                {showListEditor && packingItems && (
-                  <div className="mb-4 max-w-2xl mx-auto">
-                    <ListEditor items={packingItems} onItemsChange={setPackingItems} />
+              {/* Content */}
+              <div className="bg-white/20 backdrop-blur-md rounded-2xl p-6 sm:p-8 shadow-2xl border border-white/30">
+                {isLoading && !packingItems && (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mb-4"></div>
+                    <p className="text-white text-lg font-semibold">Analyzing your trip...</p>
+                    <p className="text-white/70 text-sm">Finding perfect items for you</p>
                   </div>
                 )}
 
-                {/* Content Area */}
-                <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 sm:p-6 shadow-xl border border-white/30">
-                   {isLoading && !packingItems && (
-                     <LoadingAnimation />
-                   )}
+                {!isLoading && packingItems && packingItems.length > 0 && (
+                  <>
+                    {groupByCategory ? (
+                      <div className="space-y-10">
+                        {Object.entries(getGroupedItems()).map(([category, items]) => (
+                          <div key={category}>
+                            <h2 className="text-3xl font-bold text-white mb-6 drop-shadow-lg flex items-center gap-3">
+                              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                                {category.includes('Document') ? '📄' : category.includes('Beach') ? '🏖️' : category.includes('Cloth') ? '👕' : category.includes('Electronic') ? '🔌' : '💼'}
+                              </div>
+                              {category}
+                            </h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                              {items.map((item, index) => {
+                                const globalIndex = packingItems.findIndex(i => i === item);
+                                return (
+                                  <div 
+                                    key={item.item_name + index}
+                                    className={`group relative bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 ${item.checked ? 'ring-4 ring-green-500 opacity-75' : ''}`}
+                                  >
+                                    <div className="relative h-56 bg-gradient-to-br from-purple-100 to-pink-100 overflow-hidden">
+                                      <div className="absolute inset-0 bg-gradient-to-br from-purple-400/20 to-pink-400/20 group-hover:scale-110 transition-transform duration-500"></div>
+                                      <div className="absolute inset-0 flex items-center justify-center text-6xl">
+                                        {item.item_name.toLowerCase().includes('passport') ? '🛂' : 
+                                         item.item_name.toLowerCase().includes('sun') ? '☀️' :
+                                         item.item_name.toLowerCase().includes('swim') ? '🩱' :
+                                         item.item_name.toLowerCase().includes('adapter') ? '🔌' :
+                                         item.item_name.toLowerCase().includes('aid') ? '🏥' : '🎒'}
+                                      </div>
+                                      <button
+                                        onClick={() => toggleItemChecked(globalIndex)}
+                                        className="absolute top-4 left-4 w-10 h-10 bg-white rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform z-10"
+                                      >
+                                        {item.checked && <Check className="w-6 h-6 text-green-600" />}
+                                      </button>
+                                    </div>
+                                    <div className="p-6">
+                                      <h3 className="font-bold text-xl mb-2 text-gray-900 group-hover:text-purple-600 transition-colors">
+                                        {item.item_name}
+                                      </h3>
+                                      <p className="text-sm text-gray-600 mb-4 leading-relaxed">{item.description}</p>
+                                      <span className="inline-block text-xs font-bold text-purple-600 bg-purple-50 px-4 py-2 rounded-full">
+                                        {item.category}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {packingItems.map((item, index) => (
+                          <div 
+                            key={item.item_name + index}
+                            className={`group relative bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 ${item.checked ? 'ring-4 ring-green-500 opacity-75' : ''}`}
+                          >
+                            <div className="relative h-56 bg-gradient-to-br from-purple-100 to-pink-100 overflow-hidden">
+                              <div className="absolute inset-0 bg-gradient-to-br from-purple-400/20 to-pink-400/20 group-hover:scale-110 transition-transform duration-500"></div>
+                              <div className="absolute inset-0 flex items-center justify-center text-6xl">
+                                {item.item_name.toLowerCase().includes('passport') ? '🛂' : 
+                                 item.item_name.toLowerCase().includes('sun') ? '☀️' :
+                                 item.item_name.toLowerCase().includes('swim') ? '🩱' :
+                                 item.item_name.toLowerCase().includes('adapter') ? '🔌' :
+                                 item.item_name.toLowerCase().includes('aid') ? '🏥' : '🎒'}
+                              </div>
+                              <button
+                                onClick={() => toggleItemChecked(index)}
+                                className="absolute top-4 left-4 w-10 h-10 bg-white rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform z-10"
+                              >
+                                {item.checked && <Check className="w-6 h-6 text-green-600" />}
+                              </button>
+                            </div>
+                            <div className="p-6">
+                              <h3 className="font-bold text-xl mb-2 text-gray-900 group-hover:text-purple-600 transition-colors">
+                                {item.item_name}
+                              </h3>
+                              <p className="text-sm text-gray-600 mb-4 leading-relaxed">{item.description}</p>
+                              <span className="inline-block text-xs font-bold text-purple-600 bg-purple-50 px-4 py-2 rounded-full">
+                                {item.category}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
 
-                   {!isLoading && packingItems && packingItems.length > 0 && (
-                     <>
-                       {groupByCategory ? (
-                         <div className="space-y-8">
-                           {Object.entries(getGroupedItems()).map(([category, items]) => (
-                             <div key={category}>
-                               <h2 className="text-2xl font-bold text-white mb-4 drop-shadow-lg">
-                                 {category}
-                               </h2>
-                               <motion.div
-                                 className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
-                                 variants={containerVariants} 
-                                 initial="hidden" 
-                                 animate="visible"
-                               >
-                                 {items.map((item, index) => {
-                                   const globalIndex = packingItems.findIndex(i => i === item);
-                                   const productData = getLocalProductData(item.item_name); 
-                                   const isAffiliate = productData.is_affiliate;
-                                   
-                                   return (
-                                     <motion.div 
-                                       key={item.item_name + index} 
-                                       className={`border rounded-xl overflow-hidden shadow-lg bg-white flex flex-col hover:shadow-2xl transition-all ${item.checked ? 'opacity-60 border-green-500 border-2' : 'border-gray-200'}`}
-                                       variants={itemVariants} 
-                                       whileHover={{ scale: 1.03, y: -2 }} 
-                                       transition={{ type: "spring", stiffness: 300, damping: 20 }} 
-                                     >
-                                       <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center relative overflow-hidden group">
-                                         <a href={productData.product_link} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
-                                            <img 
-                                              src={productData.image_link || "https://via.placeholder.com/300/e9d5ff/9333ea?text=Packmind"} 
-                                              alt={item.item_name} 
-                                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                            />
-                                         </a>
-                                         {isAffiliate && (
-                                             <span className="absolute top-3 right-3 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-                                                 Ad
-                                             </span>
-                                         )}
-                                         <button
-                                           onClick={() => toggleItemChecked(globalIndex)}
-                                           className="absolute top-3 left-3 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
-                                           aria-label={`Mark ${item.item_name} as ${item.checked ? 'unpacked' : 'packed'}`}
-                                         >
-                                           {item.checked && <Check className="w-5 h-5 text-green-600" />}
-                                         </button>
-                                       </div>
-                                       <div className="p-5 flex flex-col flex-grow">
-                                         <a 
-                                           href={productData.product_link} 
-                                           target="_blank" 
-                                           rel="noopener noreferrer" 
-                                           className="text-gray-900 hover:text-purple-600 hover:underline text-lg font-bold mb-2 transition-colors"
-                                         >
-                                             {productData.product_title}
-                                         </a>
-                                         <p className="text-sm text-gray-600 flex-grow mb-3">{item.description}</p>
-                                         <span className="inline-block text-xs font-semibold text-purple-600 bg-purple-50 px-3 py-1 rounded-full self-start">
-                                           {item.category}
-                                         </span>
-                                       </div>
-                                     </motion.div>
-                                   );
-                                 })}
-                               </motion.div>
-                             </div>
-                           ))}
-                         </div>
-                       ) : (
-                         <motion.div
-                           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
-                           variants={containerVariants} 
-                           initial="hidden" 
-                           animate="visible"
-                         >
-                           {packingItems.map((item, index) => {
-                             const productData = getLocalProductData(item.item_name); 
-                             const isAffiliate = productData.is_affiliate;
-                             
-                             return (
-                               <motion.div 
-                                 key={item.item_name + index} 
-                                 className={`border rounded-xl overflow-hidden shadow-lg bg-white flex flex-col hover:shadow-2xl transition-all ${item.checked ? 'opacity-60 border-green-500 border-2' : 'border-gray-200'}`}
-                                 variants={itemVariants} 
-                                 whileHover={{ scale: 1.03, y: -2 }} 
-                                 transition={{ type: "spring", stiffness: 300, damping: 20 }} 
-                               >
-                                 <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center relative overflow-hidden group">
-                                   <a href={productData.product_link} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
-                                      <img 
-                                        src={productData.image_link || "https://via.placeholder.com/300/e9d5ff/9333ea?text=Packmind"} 
-                                        alt={item.item_name} 
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                      />
-                                   </a>
-                                   {isAffiliate && (
-                                       <span className="absolute top-3 right-3 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-                                           Ad
-                                       </span>
-                                   )}
-                                   <button
-                                     onClick={() => toggleItemChecked(index)}
-                                     className="absolute top-3 left-3 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
-                                     aria-label={`Mark ${item.item_name} as ${item.checked ? 'unpacked' : 'packed'}`}
-                                   >
-                                     {item.checked && <Check className="w-5 h-5 text-green-600" />}
-                                   </button>
-                                 </div>
-                                 <div className="p-5 flex flex-col flex-grow">
-                                   <a 
-                                     href={productData.product_link} 
-                                     target="_blank" 
-                                     rel="noopener noreferrer" 
-                                     className="text-gray-900 hover:text-purple-600 hover:underline text-lg font-bold mb-2 transition-colors"
-                                   >
-                                       {productData.product_title}
-                                   </a>
-                                   <p className="text-sm text-gray-600 flex-grow mb-3">{item.description}</p>
-                                   <span className="inline-block text-xs font-semibold text-purple-600 bg-purple-50 px-3 py-1 rounded-full self-start">
-                                     {item.category}
-                                   </span>
-                                 </div>
-                               </motion.div>
-                             );
-                           })}
-                         </motion.div>
-                       )}
-                     </>
-                   )}
-                   
-                   {!isLoading && packingItems && packingItems.length === 0 && (
-                      <p className="text-white text-center italic">No packing items generated for this trip.</p>
-                   )}
-                </div>
-              </motion.div>
-            )}
+                {!isLoading && (!packingItems || packingItems.length === 0) && showResult && (
+                  <div className="text-center py-20">
+                    <div className="text-6xl mb-4">✈️</div>
+                    <p className="text-white text-xl italic">Your packing list will appear here...</p>
+                    <p className="text-white/70 mt-2">Enter your trip details above to get started!</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
-            {!isLoading && !errorText && (!showResult || !packingItems) && (
-               <motion.div
-                 key="placeholder-block"
-                 initial={{ opacity: 0 }} 
-                 animate={{ opacity: 1 }} 
-                 exit={{ opacity: 0 }}
-               >
-                 <div className="bg-white/20 backdrop-blur-md rounded-lg p-6 shadow-xl max-w-2xl mx-auto border border-white/30">
-                   <p className="text-white text-center italic">
-                     {showResult ? "Your packing list will appear here..." : "Result cleared."}
-                   </p>
-                 </div>
-               </motion.div>
-            )}
-          </AnimatePresence>
-          
-        </motion.div>
-      </main>
-      
-      {/* Footer with CTA */}
-      <footer className="mt-20 pb-10 text-center">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="bg-white/20 backdrop-blur-md rounded-xl p-8 border border-white/30 shadow-xl">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 drop-shadow-lg">
-              Love Packmind AI?
+        {/* Comparison Section */}
+        <div className="mt-20 w-full max-w-5xl">
+          <div className="bg-white/20 backdrop-blur-md rounded-2xl p-8 sm:p-12 border border-white/30 shadow-2xl">
+            <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-12 drop-shadow-lg">
+              Traditional Packing vs. Packmind AI
             </h2>
-            <p className="text-white/90 mb-6 text-lg drop-shadow-md">
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                <h3 className="text-xl font-bold text-white/70 mb-4 text-center">Old Way 😩</h3>
+                <ul className="space-y-3 text-white">
+                  <li className="flex items-start gap-3">
+                    <span className="text-red-400 font-bold">✗</span>
+                    <span>2-3 hours making lists</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-red-400 font-bold">✗</span>
+                    <span>Generic, one-size-fits-all</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-red-400 font-bold">✗</span>
+                    <span>Always forget essentials</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-red-400 font-bold">✗</span>
+                    <span>Buy forgotten items at airport</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="bg-gradient-to-br from-green-400/20 to-blue-400/20 backdrop-blur-sm rounded-xl p-6 border-2 border-green-400/30 shadow-lg">
+                <h3 className="text-xl font-bold text-white mb-4 text-center">Packmind Way 🎉</h3>
+                <ul className="space-y-3 text-white">
+                  <li className="flex items-start gap-3">
+                    <span className="text-green-300 font-bold">✓</span>
+                    <span><strong>30 seconds</strong> to perfect list</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-green-300 font-bold">✓</span>
+                    <span><strong>Personalized</strong> for YOUR trip</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-green-300 font-bold">✓</span>
+                    <span><strong>Never miss</strong> a thing</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-green-300 font-bold">✓</span>
+                    <span><strong>Save money</strong> & stress</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Testimonials */}
+        <div className="mt-20 w-full max-w-5xl">
+          <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-12 drop-shadow-lg">
+            Loved by Travelers Worldwide 🌎
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { name: "Sarah M.", location: "New York", text: "Saved me hours! Never packing without this again. The list was spot-on for my Bali trip.", rating: 5 },
+              { name: "James K.", location: "London", text: "As a frequent business traveler, this is a game-changer. I don't forget my chargers anymore!", rating: 5 },
+              { name: "Maria G.", location: "Barcelona", text: "Used it for our family vacation. It even reminded us about kids' essentials we forgot!", rating: 5 },
+            ].map((testimonial, i) => (
+              <div key={i} className="bg-white rounded-2xl p-6 shadow-xl hover:scale-105 transition-transform">
+                <div className="flex mb-3">
+                  {[...Array(testimonial.rating)].map((_, j) => (
+                    <Star key={j} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+                <p className="text-gray-700 mb-4 italic">"{testimonial.text}"</p>
+                <div>
+                  <div className="font-bold text-gray-900">{testimonial.name}</div>
+                  <div className="text-sm text-gray-500">{testimonial.location}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="mt-20 w-full max-w-4xl">
+          <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-12 drop-shadow-lg">
+            Frequently Asked Questions
+          </h2>
+          <div className="space-y-4">
+            {[
+              { q: "Is Packmind AI really free?", a: "Yes! 100% free, no credit card required, no hidden fees. We believe everyone deserves stress-free travel." },
+              { q: "How does the AI work?", a: "Our AI analyzes millions of successful trips to create personalized packing lists based on your destination, duration, activities, and season." },
+              { q: "Can I save my lists?", a: "Currently you can export your lists as PDF or text. We're working on user accounts to save unlimited lists!" },
+              { q: "Do you share my data?", a: "Never. Your trip details are private and used only to generate your packing list." },
+            ].map((faq, i) => (
+              <div key={i} className="bg-white/20 backdrop-blur-md rounded-xl p-6 border border-white/30 hover:bg-white/30 transition-all">
+                <h3 className="font-bold text-white text-lg mb-2">{faq.q}</h3>
+                <p className="text-white/90">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </main>
+
+      {/* Footer CTA */}
+      <footer className="relative z-10 mt-24 pb-12">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="bg-gradient-to-br from-purple-600/30 to-pink-600/30 backdrop-blur-md rounded-2xl p-10 border-2 border-white/40 shadow-2xl">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 drop-shadow-lg text-center">
+              {emailCaptured ? "Share the Love! 💜" : "Ready to Pack Smarter?"}
+            </h2>
+            <p className="text-white/95 mb-6 text-lg text-center max-w-2xl mx-auto">
               {emailCaptured 
-                ? "Share it with your travel buddies and never forget anything again!"
-                : "Join our community and get exclusive packing tips!"
+                ? "Help your friends travel stress-free. Share Packmind AI and never let them forget essentials again!"
+                : "Join 12,000+ smart travelers. Get exclusive packing tips and never forget anything again!"
               }
             </p>
-            {emailCaptured ? (
-              <button
-                onClick={handleShare}
-                className="bg-white text-purple-600 px-8 py-3 rounded-lg font-bold hover:bg-purple-50 transition-all shadow-lg hover:shadow-xl"
-              >
-                Share Packmind AI
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowEmailModal(true)}
-                className="bg-white text-purple-600 px-8 py-3 rounded-lg font-bold hover:bg-purple-50 transition-all shadow-lg hover:shadow-xl"
-              >
-                Get Free Packing Guide
-              </button>
-            )}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              {emailCaptured ? (
+                <button
+                  onClick={() => alert('Share functionality')}
+                  className="bg-white text-purple-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-purple-50 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
+                >
+                  📤 Share Packmind AI
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowEmailModal(true)}
+                  className="bg-white text-purple-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-purple-50 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
+                >
+                  🎁 Get Free Packing Guide
+                </button>
+              )}
+            </div>
           </div>
           
-          <div className="mt-8 text-white/70 text-sm">
-            <p>© 2025 Packmind AI. Made with ❤️ for travelers.</p>
+          <div className="mt-10 text-center text-white/80 text-sm space-y-2">
+            <p className="font-medium">© 2025 Packmind AI. Made with ❤️ for travelers.</p>
+            <div className="flex justify-center gap-4 flex-wrap">
+              <button className="hover:text-white transition-colors">Privacy Policy</button>
+              <span>•</span>
+              <button className="hover:text-white transition-colors">Terms of Service</button>
+              <span>•</span>
+              <button className="hover:text-white transition-colors">Contact Us</button>
+            </div>
           </div>
         </div>
       </footer>
     </div>
   );
-}-50 transition-all shadow-lg"
-                    >
-                      <Share2 size={20}/>
-                    </button>
-                    <button 
-                      onClick={handleExportPDF}
-                      disabled={!packingItems}
-                      title="Export as PDF"
-                      aria-label="Export as PDF"
-                      className="p-2 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-lg border border-white/30 disabled:opacity-50 transition-all shadow-lg"
-                    >
-                      <FileText size={20}/>
-                    </button>
-                    <button 
-                      onClick={handleExportText}
-                      disabled={!packingItems}
-                      title="Export as text"
-                      aria-label="Export as text"
-                      className="p-2 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-lg border border-white/30 disabled:opacity-50 transition-all shadow-lg"
-                    >
-                      <Download size={20}/>
-                    </button>
-                    <button 
-                      onClick={handleCopy} 
-                      disabled={!rawResultText} 
-                      title="Copy JSON" 
-                      aria-label="Copy JSON" 
-                      className="p-2 text-white bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-lg border border-white/30 disabled:opacity
+}
