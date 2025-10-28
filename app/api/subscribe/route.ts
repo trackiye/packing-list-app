@@ -99,8 +99,6 @@ export async function POST(req: Request) {
           }
         );
 
-        const data = await response.json();
-
         if (!response.ok) {
           throw new Error('ConvertKit error');
         }

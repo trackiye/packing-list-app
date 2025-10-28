@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { ClipboardCopy, Trash2, Search, Cog, ListChecks, Download, Share2, Check, FileText, Edit, Star, Users, Zap } from "lucide-react";
+import { Trash2, Search, Cog, ListChecks, Share2, Check, FileText, Star, Users, Zap } from "lucide-react";
 
 interface PackingItem {
   item_name: string;
@@ -16,7 +16,6 @@ export default function PackmindAI() {
   const [packingItems, setPackingItems] = useState<PackingItem[] | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(true);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [groupByCategory, setGroupByCategory] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailCaptured, setEmailCaptured] = useState(false);
@@ -140,7 +139,7 @@ export default function PackmindAI() {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header - MADE STICKY */}
       <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-lg shadow-sm border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -492,7 +491,7 @@ export default function PackmindAI() {
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-green-300 font-bold">✓</span>
-                    <span><strong>Save money</strong> & stress</span>
+                    <span><strong>Save money</strong> &amp; stress</span>
                   </li>
                 </ul>
               </div>
@@ -517,7 +516,7 @@ export default function PackmindAI() {
                     <Star key={j} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
-                <p className="text-gray-700 mb-4 italic">"{testimonial.text}"</p>
+                <p className="text-gray-700 mb-4 italic">&ldquo;{testimonial.text}&rdquo;</p>
                 <div>
                   <div className="font-bold text-gray-900">{testimonial.name}</div>
                   <div className="text-sm text-gray-500">{testimonial.location}</div>

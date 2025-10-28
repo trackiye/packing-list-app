@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Edit2, Trash2, Check } from 'lucide-react';
+import { Plus, Edit2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface PackingItem {
@@ -61,8 +61,8 @@ export default function ListEditor({ items, onItemsChange }: ListEditorProps) {
     toast.success('Item added!');
 
     // Track custom item addition
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'custom_item_added', {
+    if (typeof window !== 'undefined' && (window as Record<string, unknown>).gtag) {
+      ((window as Record<string, unknown>).gtag as (...args: unknown[]) => void)('event', 'custom_item_added', {
         event_category: 'engagement',
         category: newItem.category,
       });
@@ -89,8 +89,8 @@ export default function ListEditor({ items, onItemsChange }: ListEditorProps) {
     toast.success(`Removed ${itemName}`);
 
     // Track item deletion
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'item_deleted', {
+    if (typeof window !== 'undefined' && (window as Record<string, unknown>).gtag) {
+      ((window as Record<string, unknown>).gtag as (...args: unknown[]) => void)('event', 'item_deleted', {
         event_category: 'engagement',
       });
     }
