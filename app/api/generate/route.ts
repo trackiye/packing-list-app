@@ -116,9 +116,8 @@ Example Response Format:
     const { text } = await generateText({
       model: openai('gpt-3.5-turbo'),
       prompt: masterPrompt,
-      temperature: 0.7, // Add some creativity
-      maxTokens: 1000,
-    });
+      temperature: 0.7 // Add some creativity
+   });
 
     // --- Validate Response ---
     if (!text || text.trim().length === 0) {
