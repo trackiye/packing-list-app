@@ -1,6 +1,3 @@
-import React, { useState } from 'react';
-import { X, Mail, Gift } from 'lucide-react';
-
 // components/EmailCaptureModal.tsx
 interface EmailCaptureModalProps {
   isOpen: boolean;

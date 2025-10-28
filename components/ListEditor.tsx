@@ -61,13 +61,15 @@ export default function ListEditor({ items, onItemsChange }: ListEditorProps) {
     toast.success('Item added!');
 
     // Track custom item addition
-    if (typeof window !== 'undefined' && (window as Record<string, unknown>).gtag) {
-      ((window as Record<string, unknown>).gtag as (...args: unknown[]) => void)('event', 'custom_item_added', {
-        event_category: 'engagement',
-        category: newItem.category,
-      });
-    }
-  };
+if (typeof window !== 'undefined') {
+  const windowWithGtag = window as Window & { gtag?: (...args: unknown[]) => void };
+  if (windowWithGtag.gtag) {
+    windowWithGtag.gtag('event', 'custom_item_added', {
+      event_category: 'engagement',
+      category: newItem.category,
+    });
+  }
+}
 
   const handleUpdateItem = (index: number) => {
     const updated = [...items];
