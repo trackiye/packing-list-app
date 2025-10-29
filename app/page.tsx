@@ -1,9 +1,11 @@
+// app/page.tsx
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Trash2, Search, Cog, ListChecks, Share2, Check, FileText, Star, Users, Zap } from "lucide-react";
+import { Trash2, Search, Cog, ListChecks, Share2, Check, FileText, Star, Users, Zap, ShoppingCart } from "lucide-react";
 import AffiliateSuggestionModal from '@/components/AffiliateSuggestionModal';
-import { getProductSuggestions, PackingItemData, ASSOCIATE_ID } from '@/data/affiliateProducts';
+// Import the lookup function and types from the structured data file
+import { getProductSuggestions, PackingItemData, ASSOCIATE_ID } from '@/data/affiliateProducts'; 
 
 interface PackingItem {
   item_name: string;
@@ -24,9 +26,9 @@ export default function PackmindAI() {
   const [listsGenerated, setListsGenerated] = useState(0);
   const [liveCounter, setLiveCounter] = useState(12487);
   
-  // NEW: Affiliate modal state
+  // NEW STATE: Affiliate modal state, storing the correctly typed data
   const [showAffiliateModal, setShowAffiliateModal] = useState(false);
-  const [selectedItemForShopping, setSelectedItemForShopping] = useState<PackingItem | null>(null);
+  const [selectedItemData, setSelectedItemData] = useState<PackingItemData | null>(null);
 
   // Simulate live counter
   useEffect(() => {
@@ -45,16 +47,20 @@ export default function PackmindAI() {
     setShowResult(true);
     
     try {
-      // Simulated data for demo
+      // --- MOCK DATA SIMULATION (Using names that match the compiled database keys) ---
+      // This ensures we can test the new commerce modal immediately.
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       const mockItems: PackingItem[] = [
-        { item_name: "Passport", description: "Valid for 6+ months", category: "Travel Documents", checked: false },
-        { item_name: "Sunscreen", description: "SPF 50+ waterproof", category: "Beach Essentials", checked: false },
+        { item_name: "Universal Travel Adapter", description: "Charge all your devices globally.", category: "Electronics", checked: false },
+        { item_name: "Noise Canceling Headphones", description: "Essential for a peaceful flight.", category: "Electronics", checked: false },
+        { item_name: "40L Carry-On Backpack", description: "Meets most international airline rules.", category: "Luggage", checked: false },
+        { item_name: "Merino Wool T-Shirt", description: "Odor resistant and fast drying.", category: "Clothing", checked: false },
+        // Item that DO NOT match the database (to test the fallback logic)
+        { item_name: "Sunscreen", description: "SPF 50+ waterproof, reef-safe.", category: "Toiletries", checked: false },
         { item_name: "Swimsuit", description: "Quick-dry material", category: "Clothing", checked: false },
-        { item_name: "Travel Adapter", description: "Universal plug", category: "Electronics", checked: false },
-        { item_name: "First Aid Kit", description: "Basic medications", category: "Health", checked: false },
-        { item_name: "Beach Towel", description: "Lightweight microfiber", category: "Beach Essentials", checked: false },
+        { item_name: "Travel Daypack", description: "Collapsible bag for day excursions.", category: "Accessories", checked: false },
+        { item_name: "Passport", description: "Valid for 6+ months", category: "Documents", checked: false },
       ];
       
       setPackingItems(mockItems);
@@ -66,7 +72,7 @@ export default function PackmindAI() {
       }, 500);
       
     } catch (error) {
-      setErrorText(`Failed: ${error}`);
+      setErrorText(`Failed to generate list: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -100,42 +106,20 @@ export default function PackmindAI() {
     setPackingItems(null);
   };
 
-  // NEW: Generate mock product data for affiliate modal
-  const generateMockProductData = (item: PackingItem) => {
-    return {
-      itemName: item.item_name,
-      category: item.category,
-      budgetOption: {
-        id: `${item.item_name}-budget`,
-        name: `Budget ${item.item_name}`,
-        priceEstimate: "$25 - $45",
-        affiliateUrl: "https://amazon.com",
-        imagePlaceholderUrl: "https://placehold.co/150x150/A5B4FC/FFFFFF?text=Budget",
-        valueProposition: "Great Value | Reliable Quality",
-      },
-      midRangeOption: {
-        id: `${item.item_name}-mid`,
-        name: `Premium ${item.item_name}`,
-        priceEstimate: "$60 - $90",
-        affiliateUrl: "https://amazon.com",
-        imagePlaceholderUrl: "https://placehold.co/150x150/4F46E5/FFFFFF?text=Mid-Range",
-        valueProposition: "Best Seller | Balanced Performance",
-      },
-      premiumOption: {
-        id: `${item.item_name}-premium`,
-        name: `Luxury ${item.item_name}`,
-        priceEstimate: "$120 - $180",
-        affiliateUrl: "https://amazon.com",
-        imagePlaceholderUrl: "https://placehold.co/150x150/1D4ED8/FFFFFF?text=Premium",
-        valueProposition: "Top Quality | Long-lasting",
-      },
-    };
-  };
-
-  // NEW: Handle shop button click
+  // CORE LOGIC: Find product suggestions and handle click
   const handleShopClick = (item: PackingItem) => {
-    setSelectedItemForShopping(item);
-    setShowAffiliateModal(true);
+    // Use the imported lookup function to find the structured 3-tier data
+    const suggestions = getProductSuggestions(item.item_name);
+
+    if (suggestions) {
+      // SUCCESS: Open the 3-tier modal with the correct data structure
+      setSelectedItemData(suggestions);
+      setShowAffiliateModal(true);
+    } else {
+        // FALLBACK: Open a generic Amazon search (for items like 'Sunscreen')
+        alert(`No curated tiers found for "${item.item_name}". Opening general Amazon search instead. \n\nThis will use your standard affiliate ID: ${ASSOCIATE_ID}`);
+        window.open(`https://www.amazon.com/s?k=${encodeURIComponent(item.item_name)}&tag=${ASSOCIATE_ID}`, '_blank', 'noopener,noreferrer');
+    }
   };
 
   return (
@@ -147,7 +131,7 @@ export default function PackmindAI() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
-      {/* Email Capture Modal */}
+      {/* Email Capture Modal (Unchanged) */}
       {showEmailModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl relative">
@@ -664,9 +648,9 @@ export default function PackmindAI() {
         isOpen={showAffiliateModal}
         onClose={() => {
           setShowAffiliateModal(false);
-          setSelectedItemForShopping(null);
+          setSelectedItemData(null);
         }}
-        itemData={selectedItemForShopping ? generateMockProductData(selectedItemForShopping) : null}
+        itemData={selectedItemData}
       />
     </div>
   );
