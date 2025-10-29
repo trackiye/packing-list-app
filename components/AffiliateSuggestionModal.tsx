@@ -8,7 +8,7 @@ interface ProductOption {
   name: string;
   priceEstimate: string;
   affiliateUrl: string;
-  imagePlaceholderUrl: string;
+  imageUrl: string;
   valueProposition: string;
 }
 

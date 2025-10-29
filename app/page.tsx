@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, Search, Cog, ListChecks, Share2, Check, FileText, Star, Users, Zap } from "lucide-react";
 import AffiliateSuggestionModal from '@/components/AffiliateSuggestionModal';
+import { getProductSuggestions, PackingItemData, ASSOCIATE_ID } from '@/data/affiliateProducts';
 
 interface PackingItem {
   item_name: string;
