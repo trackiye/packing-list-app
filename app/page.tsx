@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Trash2, Search, Cog, ListChecks, Share2, Check, FileText, Star, Users, Zap } from "lucide-react";
+import AffiliateSuggestionModal from '@/components/AffiliateSuggestionModal';
 
 interface PackingItem {
   item_name: string;
@@ -21,6 +22,10 @@ export default function PackmindAI() {
   const [emailCaptured, setEmailCaptured] = useState(false);
   const [listsGenerated, setListsGenerated] = useState(0);
   const [liveCounter, setLiveCounter] = useState(12487);
+  
+  // NEW: Affiliate modal state
+  const [showAffiliateModal, setShowAffiliateModal] = useState(false);
+  const [selectedItemForShopping, setSelectedItemForShopping] = useState<PackingItem | null>(null);
 
   // Simulate live counter
   useEffect(() => {
@@ -92,6 +97,44 @@ export default function PackmindAI() {
   const handleDelete = () => {
     setShowResult(false);
     setPackingItems(null);
+  };
+
+  // NEW: Generate mock product data for affiliate modal
+  const generateMockProductData = (item: PackingItem) => {
+    return {
+      itemName: item.item_name,
+      category: item.category,
+      budgetOption: {
+        id: `${item.item_name}-budget`,
+        name: `Budget ${item.item_name}`,
+        priceEstimate: "$25 - $45",
+        affiliateUrl: "https://amazon.com",
+        imagePlaceholderUrl: "https://placehold.co/150x150/A5B4FC/FFFFFF?text=Budget",
+        valueProposition: "Great Value | Reliable Quality",
+      },
+      midRangeOption: {
+        id: `${item.item_name}-mid`,
+        name: `Premium ${item.item_name}`,
+        priceEstimate: "$60 - $90",
+        affiliateUrl: "https://amazon.com",
+        imagePlaceholderUrl: "https://placehold.co/150x150/4F46E5/FFFFFF?text=Mid-Range",
+        valueProposition: "Best Seller | Balanced Performance",
+      },
+      premiumOption: {
+        id: `${item.item_name}-premium`,
+        name: `Luxury ${item.item_name}`,
+        priceEstimate: "$120 - $180",
+        affiliateUrl: "https://amazon.com",
+        imagePlaceholderUrl: "https://placehold.co/150x150/1D4ED8/FFFFFF?text=Premium",
+        valueProposition: "Top Quality | Long-lasting",
+      },
+    };
+  };
+
+  // NEW: Handle shop button click
+  const handleShopClick = (item: PackingItem) => {
+    setSelectedItemForShopping(item);
+    setShowAffiliateModal(true);
   };
 
   return (
@@ -384,9 +427,20 @@ export default function PackmindAI() {
                                         {item.item_name}
                                       </h3>
                                       <p className="text-sm text-gray-600 mb-4 leading-relaxed">{item.description}</p>
-                                      <span className="inline-block text-xs font-bold text-purple-600 bg-purple-50 px-4 py-2 rounded-full">
-                                        {item.category}
-                                      </span>
+                                      
+                                      {/* NEW: Category badge and Shop button */}
+                                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                                        <span className="inline-block text-xs font-bold text-purple-600 bg-purple-50 px-4 py-2 rounded-full">
+                                          {item.category}
+                                        </span>
+                                        
+                                        <button
+                                          onClick={() => handleShopClick(item)}
+                                          className="flex items-center gap-1 text-xs font-bold text-white bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-full hover:shadow-lg hover:scale-105 transition-all"
+                                        >
+                                          🛒 Shop Now
+                                        </button>
+                                      </div>
                                     </div>
                                   </div>
                                 );
@@ -423,9 +477,20 @@ export default function PackmindAI() {
                                 {item.item_name}
                               </h3>
                               <p className="text-sm text-gray-600 mb-4 leading-relaxed">{item.description}</p>
-                              <span className="inline-block text-xs font-bold text-purple-600 bg-purple-50 px-4 py-2 rounded-full">
-                                {item.category}
-                              </span>
+                              
+                              {/* NEW: Category badge and Shop button */}
+                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                <span className="inline-block text-xs font-bold text-purple-600 bg-purple-50 px-4 py-2 rounded-full">
+                                  {item.category}
+                                </span>
+                                
+                                <button
+                                  onClick={() => handleShopClick(item)}
+                                  className="flex items-center gap-1 text-xs font-bold text-white bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-full hover:shadow-lg hover:scale-105 transition-all"
+                                >
+                                  🛒 Shop Now
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -592,6 +657,16 @@ export default function PackmindAI() {
           </div>
         </div>
       </footer>
+
+      {/* NEW: Affiliate Modal */}
+      <AffiliateSuggestionModal
+        isOpen={showAffiliateModal}
+        onClose={() => {
+          setShowAffiliateModal(false);
+          setSelectedItemForShopping(null);
+        }}
+        itemData={selectedItemForShopping ? generateMockProductData(selectedItemForShopping) : null}
+      />
     </div>
   );
 }
