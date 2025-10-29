@@ -8,7 +8,8 @@ interface ProductOption {
   name: string;
   priceEstimate: string;
   affiliateUrl: string;
-  imageUrl: string;
+  // FIX: Renamed property from imagePlaceholderUrl to imageUrl to match data/affiliateProducts.ts
+  imageUrl: string; 
   valueProposition: string;
 }
 
@@ -87,14 +88,14 @@ export default function AffiliateSuggestionModal({
     featured: boolean = false
   ) => (
     <div
-      className={`relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden ${
+      className={`relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 ${
         featured ? 'ring-2 ring-blue-500 scale-105 z-10' : 'hover:scale-105'
       }`}
     >
       {/* Featured Badge */}
       {featured && (
         <div className="absolute top-0 right-0 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold px-4 py-1 rounded-bl-lg shadow-md z-20">
-          ⭐ MOST POPULAR
+          THE MOST POPULAR
         </div>
       )}
 
@@ -115,7 +116,8 @@ export default function AffiliateSuggestionModal({
         {/* Product Image */}
         <div className="flex justify-center mb-4">
           <img
-            src={option.imagePlaceholderUrl}
+            // FIX APPLIED HERE: Now using 'imageUrl' instead of 'imagePlaceholderUrl'
+            src={option.imageUrl}
             alt={option.name}
             className="w-32 h-32 object-contain rounded-lg shadow-sm"
           />
@@ -262,7 +264,7 @@ export default function AffiliateSuggestionModal({
                 <strong className="text-gray-800">Transparency Notice:</strong> We
                 may earn a small commission from purchases made through these
                 links at no extra cost to you. This helps us keep Packmind free
-                and improve our recommendations. Thank you for your support! 💜
+                and improve our recommendations. Thank you for your support! 🙏
               </p>
             </div>
           </div>
@@ -271,57 +273,3 @@ export default function AffiliateSuggestionModal({
     </>
   );
 }
-
-// ========================================
-// EXAMPLE USAGE (for testing/integration)
-// ========================================
-/*
-import AffiliateSuggestionModal from '@/components/AffiliateSuggestionModal';
-
-const mockItemData: PackingItemData = {
-  itemName: "Noise Canceling Headphones",
-  category: "Electronics",
-  budgetOption: {
-    id: "B1",
-    name: "Anker Soundcore Q30",
-    priceEstimate: "$79 - $99",
-    affiliateUrl: "https://example.com/budget-link",
-    imagePlaceholderUrl: "https://placehold.co/100x100/A5B4FC/FFFFFF?text=BUDGET",
-    valueProposition: "Great Value | Reliable Sound",
-  },
-  midRangeOption: {
-    id: "M2",
-    name: "Sony WH-CH720N",
-    priceEstimate: "$149 - $179",
-    affiliateUrl: "https://example.com/midrange-link",
-    imagePlaceholderUrl: "https://placehold.co/100x100/4F46E5/FFFFFF?text=MID-RANGE",
-    valueProposition: "Best Seller | Balanced ANC",
-  },
-  premiumOption: {
-    id: "P3",
-    name: "Bose QuietComfort Ultra",
-    priceEstimate: "$399 - $429",
-    affiliateUrl: "https://example.com/premium-link",
-    imagePlaceholderUrl: "https://placehold.co/100x100/1D4ED8/FFFFFF?text=PREMIUM",
-    valueProposition: "Best ANC | Ultimate Comfort",
-  },
-};
-
-function MyComponent() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  return (
-    <>
-      <button onClick={() => setIsModalOpen(true)}>
-        Shop for this item
-      </button>
-      
-      <AffiliateSuggestionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        itemData={mockItemData}
-      />
-    </>
-  );
-}
-*/
