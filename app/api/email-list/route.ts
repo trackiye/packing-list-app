@@ -1,14 +1,16 @@
+// app/api/email-list/route.ts - FINAL CONSOLIDATED AND FIXED VERSION
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
+// Initialize Resend using the environment variable
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, packingList, tripContext } = body;
+    const { email, packingList, tripContext } = body; // tripContext is the subject line data
 
-    // Validate email
+    // 1. Basic validation
     if (!email || !email.includes("@")) {
       return NextResponse.json(
         { error: "Valid email is required" },
@@ -23,7 +25,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Group items by category
+    if (!process.env.RESEND_API_KEY) {
+      console.error("RESEND_API_KEY is not set.");
+      return NextResponse.json(
+        { error: "Email service is unavailable. Missing API key." },
+        { status: 503 }
+      );
+    }
+
+    // 2. Group items by category for the HTML template
     const categories = packingList.reduce((acc: any, item: any) => {
       const category = item.category || "Other";
       if (!acc[category]) acc[category] = [];
@@ -31,7 +41,7 @@ export async function POST(request: NextRequest) {
       return acc;
     }, {});
 
-    // Build HTML email
+    // 3. Build HTML Email Content (using the aesthetically superior template)
     const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -46,7 +56,6 @@ export async function POST(request: NextRequest) {
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
           
-          <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #9333ea 0%, #ec4899 50%, #3b82f6 100%); padding: 40px 30px; text-align: center;">
               <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Packmind AI</h1>
@@ -54,7 +63,6 @@ export async function POST(request: NextRequest) {
             </td>
           </tr>
 
-          <!-- Trip Context -->
           <tr>
             <td style="padding: 30px;">
               <h2 style="color: #1f2937; margin: 0 0 10px 0; font-size: 20px;">Your Trip</h2>
@@ -64,7 +72,6 @@ export async function POST(request: NextRequest) {
             </td>
           </tr>
 
-          <!-- Packing List -->
           <tr>
             <td style="padding: 0 30px 30px 30px;">
               <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 20px;">Your Packing List</h2>
@@ -101,14 +108,12 @@ export async function POST(request: NextRequest) {
             </td>
           </tr>
 
-          <!-- CTA -->
           <tr>
             <td style="padding: 0 30px 30px 30px; text-align: center;">
               <a href="https://packmind.ai" style="display: inline-block; background-color: #9333ea; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-weight: bold; font-size: 14px;">Create Another List</a>
             </td>
           </tr>
 
-          <!-- Footer -->
           <tr>
             <td style="background-color: #f9fafb; padding: 20px 30px; text-align: center; border-top: 1px solid #e5e7eb;">
               <p style="margin: 0; color: #6b7280; font-size: 12px;">
@@ -128,10 +133,10 @@ export async function POST(request: NextRequest) {
 </html>
     `;
 
-    // Send email via Resend
+    // 4. Send email via Resend
     const data = await resend.emails.send({
-      from: "Packmind AI <noreply@packmind.ai>",
-      to: [email],
+      from: "Packmind AI <noreply@packmind.ai>", // Ensure you use a verified domain
+      to: email,
       subject: `Your Packing List for ${tripContext || "Your Trip"}`,
       html: htmlContent,
     });
@@ -148,110 +153,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// app/api/email-list/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-
-export async function POST(request: NextRequest) {
-  try {
-    const { email, name, listUrl } = await request.json();
-
-    if (!email || !listUrl) {
-      return NextResponse.json(
-        { error: 'Email and list URL required' },
-        { status: 400 }
-      );
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email address' },
-        { status: 400 }
-      );
-    }
-
-    // TODO: Integrate with email service (Resend, SendGrid, etc.)
-    // For now, log and return success
-    console.log('Email would be sent:', {
-      to: email,
-      name,
-      listUrl,
-    });
-
-    // In production, use an email service:
-    /*
-    const resendApiKey = process.env.RESEND_API_KEY;
-    
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'PackMind AI <hello@packmind.ai>',
-        to: [email],
-        subject: `Your Packing List - ${name}`,
-        html: generateEmailHTML(name, listUrl),
-      }),
-    });
-    */
-
-    return NextResponse.json({
-      success: true,
-      message: 'Email sent successfully',
-    });
-  } catch (error) {
-    console.error('Email send error:', error);
-    return NextResponse.json(
-      { error: 'Failed to send email' },
-      { status: 500 }
-    );
-  }
-}
-
-function generateEmailHTML(name: string, listUrl: string): string {
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Your Packing List</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;">
-    <h1 style="color: white; margin: 0; font-size: 28px;">🎒 Your Packing List is Ready!</h1>
-  </div>
-  
-  <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
-    <p style="font-size: 16px; margin-bottom: 20px;">Hi ${name},</p>
-    
-    <p style="font-size: 16px; margin-bottom: 20px;">
-      Your personalized packing list has been saved and is ready to access anytime!
-    </p>
-    
-    <div style="text-align: center; margin: 30px 0;">
-      <a href="${listUrl}" 
-         style="background: #667eea; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">
-        View Your List
-      </a>
-    </div>
-    
-    <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
-      💡 <strong>Pro Tip:</strong> Bookmark this link so you can access your list on any device!
-    </p>
-    
-    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
-    
-    <p style="font-size: 12px; color: #9ca3af; text-align: center;">
-      Created with ❤️ by PackMind AI<br />
-      <a href="https://packmind.ai" style="color: #667eea;">packmind.ai</a>
-    </p>
-  </div>
-</body>
-</html>
-`;
 }
