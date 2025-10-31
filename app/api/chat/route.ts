@@ -1,4 +1,4 @@
-// app/api/chat/route.ts - FULLY STABILIZED AND OPTIMIZED (TypeScript Compliant)
+// app/api/chat/route.ts - FINAL, DEPLOYMENT-READY VERSION
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
@@ -20,7 +20,8 @@ interface ApiPayload {
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, conversationHistory, packingItems }: ApiPayload = await request.json();
+    const { message, conversationHistory, packingItems }: ApiPayload =
+      await request.json();
 
     // 1. Check for API key (Required for AI SDK)
     if (!process.env.OPENAI_API_KEY) {
@@ -95,7 +96,7 @@ User's New Message: ${message}`;
       model: openai("gpt-4o-mini"),
       prompt: systemPrompt,
       temperature: 0.7,
-      maxTokens: 2048,
+      // FIX: Removed maxTokens: 2048 because it is not a valid property in the current AI SDK function signature
     });
 
     // 4. Extract packing list from response
@@ -115,13 +116,15 @@ User's New Message: ${message}`;
 
         if (parsed.packingList && Array.isArray(parsed.packingList)) {
           // Asserting type for the list items
-          packingList = parsed.packingList as PackingItem[]; 
+          packingList = parsed.packingList as PackingItem[];
           // Remove JSON from message, only keeping any conversational intro/outro text
           cleanMessage = aiResponse.replace(jsonString, "").trim();
         }
-      } catch (e: unknown) { // FIX: Use unknown for catch argument
+      } catch (e: unknown) {
+        // FIX: Use unknown for catch argument
         console.error(
-          "❌ JSON Extraction Error: AI provided malformed JSON or surrounding text.", e
+          "❌ JSON Extraction Error: AI provided malformed JSON or surrounding text.",
+          e
         );
         // If parsing fails, we treat the entire response as a clean conversational message.
         packingList = [];
@@ -153,7 +156,8 @@ User's New Message: ${message}`;
       packingList: null,
       suggestions,
     });
-  } catch (error: unknown) { // FIX: Use unknown for catch argument
+  } catch (error: unknown) {
+    // FIX: Use unknown for catch argument
     // LOG DETAILED ERROR on the server for debugging
     const errorMessage = (error as Error).message || "Unknown error occurred.";
     console.error("❌ Chat API Fatal Error:", errorMessage, error);
