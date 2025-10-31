@@ -34,7 +34,7 @@ export default function SharedListPage() {
           data.items.map((item: PackingItem) => ({ ...item, checked: false }))
         );
         setTripDetails(data.tripDetails);
-      } catch (__err) {
+      } catch {
         // FIX: Using double underscore to guarantee variable is ignored
         setError("This list has expired or doesn't exist");
       } finally {

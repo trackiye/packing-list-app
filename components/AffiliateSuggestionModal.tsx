@@ -123,7 +123,6 @@ export default function AffiliateSuggestionModal({
         {/* Product Image */}
         <div className="flex justify-center mb-4">
           {/* FIX: Disable Next.js optimization warning for this <img> element */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={option.imageUrl}
             alt={option.name}

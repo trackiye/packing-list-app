@@ -1,4 +1,4 @@
-// app/page.tsx - ELITE WORLD-CLASS VERSION (Denser Card Layout)
+// app/page.tsx - COMPACT MOBILE-OPTIMIZED VERSION WITH SMOOTH TRANSITIONS
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -17,25 +17,22 @@ import {
   Shirt,
   Zap as Bolt,
   ShoppingBag,
-  Camera,
-  Battery,
-  Headphones,
-  Plug,
-  Sun,
   Waves,
   X,
   TrendingUp,
   MessageSquare,
   CheckCircle2,
-  Sparkles, // Using Sparkles for the AI
+  Sparkles,
   ArrowRight,
-  Globe, // New Icon for general trip
+  Globe,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import AffiliateSuggestionModal from "@/components/AffiliateSuggestionModal";
 import {
   getProductSuggestions,
   PackingItemData,
-  ASSOCIATE_ID, // Your affiliate ID is imported here
+  ASSOCIATE_ID,
 } from "@/data/affiliateProducts";
 import {
   Analytics,
@@ -66,11 +63,15 @@ export default function PackmindAI() {
   const [isTyping, setIsTyping] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
   const [scrollY, setScrollY] = useState(0);
   const [scrollProgress, setScrollProgress] = useState(0);
 
   const [packingItems, setPackingItems] = useState<PackingItem[] | null>(null);
   const [groupByCategory, setGroupByCategory] = useState(true);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+    new Set()
+  );
 
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailCaptured, setEmailCaptured] = useState(false);
@@ -88,12 +89,11 @@ export default function PackmindAI() {
   const [emailSending, setEmailSending] = useState(false);
   const [shareLink, setShareLink] = useState("");
 
-  // Elite parallax with sophisticated depth - NOW WITH THROTTLING
   useEffect(() => {
     let timeout: NodeJS.Timeout | null = null;
 
     const handleScroll = () => {
-      if (timeout) return; // Ignore scroll events if a timeout is already pending
+      if (timeout) return;
 
       timeout = setTimeout(() => {
         const scrolled = window.scrollY;
@@ -101,12 +101,11 @@ export default function PackmindAI() {
           document.documentElement.scrollHeight - window.innerHeight;
         const progress = (scrolled / maxScroll) * 100;
 
-        // Only update state if necessary to avoid re-renders
         setScrollY(scrolled);
         setScrollProgress(progress);
 
-        timeout = null; // Reset the timeout
-      }, 16); // Throttle to roughly 60 FPS (16ms)
+        timeout = null;
+      }, 16);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -129,12 +128,11 @@ export default function PackmindAI() {
 
   const handleStartConversation = () => {
     setConversationMode(true);
-    // FIX: Explicitly set isTyping to false when conversation starts
     setIsTyping(false);
     const initialMessage: ConversationMessage = {
       role: "assistant",
-      // REMOVED EMOJI - Using descriptive text
-      content: "Where are you headed? I need a destination to begin crafting your elite list.", 
+      content:
+        "Where are you headed? I need a destination to begin crafting your elite list.",
       suggestions: [
         "Beach vacation in Bali",
         "Business trip to NYC",
@@ -189,6 +187,11 @@ export default function PackmindAI() {
       if (data.packingList && data.packingList.length > 0) {
         setIsGenerating(true);
 
+        // Close modal first with slight delay
+        setTimeout(() => {
+          setConversationMode(false);
+        }, 300);
+
         setTimeout(() => {
           const itemsWithChecked = data.packingList.map(
             (item: PackingItem) => ({
@@ -201,19 +204,14 @@ export default function PackmindAI() {
 
           trackListGeneration(textToSend, data.packingList.length);
 
+          // Smooth scroll to results
           setTimeout(() => {
-            const resultsSection = document.getElementById("results-section");
-            if (resultsSection) {
-              resultsSection.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
-              setTimeout(() => {
-                setConversationMode(false);
-              }, 800);
-            }
-          }, 500);
-        }, 1500);
+            resultsRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }, 200);
+        }, 1000);
       }
     } catch (error) {
       console.error("Chat error:", error);
@@ -224,7 +222,6 @@ export default function PackmindAI() {
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
-      // CRITICAL: Ensure typing is disabled after the API call finishes (success or failure)
       setIsTyping(false);
     }
   };
@@ -234,6 +231,18 @@ export default function PackmindAI() {
     const updated = [...packingItems];
     updated[index].checked = !updated[index].checked;
     setPackingItems(updated);
+  };
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
   };
 
   const getProgress = () => {
@@ -255,68 +264,45 @@ export default function PackmindAI() {
   const getCategoryIcon = (category: string) => {
     const cat = category.toLowerCase();
     if (cat.includes("document") || cat.includes("security"))
-      return <FileText className="w-6 h-6" />;
+      return <FileText className="w-5 h-5" />;
     if (cat.includes("beach") || cat.includes("water"))
-      return <Waves className="w-6 h-6" />;
+      return <Waves className="w-5 h-5" />;
     if (
       cat.includes("cloth") ||
       cat.includes("wear") ||
       cat.includes("footwear")
     )
-      return <Shirt className="w-6 h-6" />;
+      return <Shirt className="w-5 h-5" />;
     if (
       cat.includes("electronic") ||
       cat.includes("tech") ||
       cat.includes("gadget")
     )
-      return <Bolt className="w-6 h-6" />;
+      return <Bolt className="w-5 h-5" />;
     if (cat.includes("luggage") || cat.includes("bag"))
-      return <ShoppingBag className="w-6 h-6" />;
-    return <MapPin className="w-6 h-6" />;
-  };
-
-  const getItemIcon = (itemName: string) => {
-    const name = itemName.toLowerCase();
-    if (name.includes("passport") || name.includes("document"))
-      return <FileText className="w-16 h-16 text-purple-600" />;
-    if (name.includes("sun"))
-      return <Sun className="w-16 h-16 text-yellow-500" />;
-    if (name.includes("swim") || name.includes("beach"))
-      return <Waves className="w-16 h-16 text-blue-500" />;
-    if (name.includes("adapter") || name.includes("plug"))
-      return <Plug className="w-16 h-16 text-green-600" />;
-    if (name.includes("phone") || name.includes("camera"))
-      return <Camera className="w-16 h-16 text-gray-700" />;
-    if (name.includes("charger") || name.includes("battery"))
-      return <Battery className="w-16 h-16 text-orange-600" />;
-    if (name.includes("headphone") || name.includes("audio"))
-      return <Headphones className="w-16 h-16 text-indigo-600" />;
-    if (name.includes("shirt") || name.includes("cloth"))
-      return <Shirt className="w-16 h-16 text-pink-600" />;
-    return <ShoppingBag className="w-16 h-16 text-gray-600" />;
+      return <ShoppingBag className="w-5 h-5" />;
+    return <MapPin className="w-5 h-5" />;
   };
 
   const handleDelete = () => {
     setPackingItems(null);
     setConversationMode(false);
     setMessages([]);
+    setExpandedCategories(new Set());
   };
 
   const handleShopClick = (item: PackingItem) => {
-    // A. Attempt to find a curated suggestion set (Budget/Mid/Premium tiers)
     const suggestions = getProductSuggestions(item.item_name);
 
     if (suggestions) {
-      // B. CURATED MATCH: Open the Affiliate Modal for tier selection
       setSelectedItemData(suggestions);
       setShowAffiliateModal(true);
       trackAffiliateClick(item.item_name, "modal_opened");
     } else {
-      // C. NO CURATED MATCH: Fallback to a dynamic Amazon search URL with affiliate tag
       const searchUrl = `https://www.amazon.com/s?k=${encodeURIComponent(
         item.item_name
       )}&tag=${ASSOCIATE_ID}`;
-      
+
       window.open(searchUrl, "_blank", "noopener,noreferrer");
       trackAffiliateClick(item.item_name, searchUrl);
     }
@@ -473,129 +459,44 @@ export default function PackmindAI() {
     <>
       <Analytics />
 
-      {/* Main Container uses dynamic dark-gradient class */}
       <div className="relative min-h-screen dark-gradient overflow-hidden">
-        
-        {/* Elite Multi-Layer Parallax Background - CRITICAL FIX: Changed 'absolute' to 'fixed' */}
+        {/* Background layers */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          {/* Base gradient layer */}
-          <div 
+          <div
             className="absolute inset-0 mesh-gradient"
-            // Use subtle parallax on fixed background (0.05)
-            style={{ 
-              transform: `translateY(${scrollY * 0.05}px)`, 
+            style={{
+              transform: `translateY(${scrollY * 0.05}px)`,
               opacity: Math.max(0.4, 1 - scrollProgress / 300),
-              willChange: 'transform, opacity'
+              willChange: "transform, opacity",
             }}
           ></div>
-          
-          {/* Floating orbs - Layer 1 (Slowest) */}
+
           <div className="absolute inset-0">
-            <div 
+            <div
               className="absolute top-20 left-10 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"
-              style={{ 
-                transform: `translate(${scrollY * 0.03}px, ${scrollY * 0.05}px)`, // Reduced speed
+              style={{
+                transform: `translate(${scrollY * 0.03}px, ${
+                  scrollY * 0.05
+                }px)`,
                 opacity: Math.max(0.3, 1 - scrollProgress / 300),
-                willChange: 'transform, opacity'
+                willChange: "transform, opacity",
               }}
             ></div>
             <div
               className="absolute bottom-20 right-10 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl"
-              style={{ 
-                transform: `translate(${scrollY * -0.03}px, ${scrollY * -0.05}px)`, // Reduced speed
+              style={{
+                transform: `translate(${scrollY * -0.03}px, ${
+                  scrollY * -0.05
+                }px)`,
                 opacity: Math.max(0.3, 1 - scrollProgress / 300),
-                willChange: 'transform, opacity'
-              }}
-            ></div>
-          </div>
-          
-          {/* Floating orbs - Layer 2 (Medium speed) */}
-          <div className="absolute inset-0">
-            <div
-              className="absolute top-1/3 right-1/4 w-64 h-64 bg-blue-500/15 rounded-full blur-3xl"
-              style={{ 
-                transform: `translate(${scrollY * -0.04}px, ${scrollY * 0.08}px)`, // Reduced speed
-                opacity: Math.max(0.2, 1 - scrollProgress / 300),
-                willChange: 'transform, opacity'
-              }}
-            ></div>
-            <div
-              className="absolute bottom-1/3 left-1/4 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl"
-              style={{ 
-                transform: `translate(${scrollY * 0.04}px, ${scrollY * -0.07}px)`, // Reduced speed
-                opacity: Math.max(0.2, 1 - scrollProgress / 300),
-                willChange: 'transform, opacity'
-              }}
-            ></div>
-          </div>
-
-          {/* Floating orbs - Layer 3 (Fastest) */}
-          <div className="absolute inset-0">
-            <div
-              className="absolute top-1/2 left-1/2 w-48 h-48 bg-violet-500/10 rounded-full blur-3xl"
-              style={{ 
-                transform: `translate(${scrollY * -0.05}px, ${scrollY * 0.1}px)`, // Reduced speed
-                opacity: Math.max(0.15, 1 - scrollProgress / 300),
-                willChange: 'transform, opacity'
+                willChange: "transform, opacity",
               }}
             ></div>
           </div>
         </div>
 
-        {/* Email Modal */}
-        {showEmailModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl relative animate-in slide-in-from-bottom-4 duration-300">
-              <button
-                onClick={() => setShowEmailModal(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X size={24} />
-              </button>
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 pulse-glow">
-                  <Zap className="w-8 h-8 text-purple-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                  Get Free Packing Guide
-                </h3>
-                <p className="text-gray-600">Ultimate checklist + pro tips</p>
-              </div>
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4 focus:ring-2 focus:ring-purple-500 transition-all"
-                value={userEmail}
-                onChange={(e) => setUserEmail(e.target.value)}
-              />
-              <button
-                onClick={() => {
-                  if (
-                    userEmail.trim() &&
-                    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)
-                  ) {
-                    trackEmailCapture(userEmail);
-                    setEmailCaptured(true);
-                    setShowEmailModal(false);
-                    alert("Thanks! Check your email.");
-                    setUserEmail("");
-                  } else {
-                    alert("Please enter a valid email");
-                  }
-                }}
-                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-all hover:scale-105"
-              >
-                Send Me The Guide →
-              </button>
-              <p className="text-xs text-gray-500 text-center mt-3">
-                No spam. Unsubscribe anytime.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Header - Clean Glass with No Background Color */}
-        <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-transparent  animate-in slide-in-from-top duration-500">
+        {/* Header */}
+        <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-transparent animate-in slide-in-from-top duration-500">
           <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg pulse-glow"></div>
@@ -623,383 +524,411 @@ export default function PackmindAI() {
 
         {/* Main Content */}
         <main className="relative z-10 flex flex-col items-center justify-start p-4 pt-8 sm:pt-12">
-          {/* Hero Section with Elite Parallax - REFINED MOVEMENT & FADE */}
-          <div 
-            className="text-center mb-12 max-w-4xl mx-auto w-full"
-            style={{ 
-              transform: `translateY(${scrollY * -0.05}px)`, 
-              opacity: Math.max(0, 1 - scrollY / 800) 
-            }}
-          >
-            <div className="inline-flex items-center gap-2 glass-dark px-4 py-2 rounded-full text-sm font-medium mb-6 border border-white/20 text-white animate-in slide-in-from-top-4 duration-700">
-              <TrendingUp className="w-4 h-4 text-green-400" />
-              <span>
-                {liveCounter.toLocaleString()}+ travelers packed today
-              </span>
-            </div>
-
-            <h1 
-              className="text-5xl sm:text-7xl font-extrabold mb-6 text-white drop-shadow-2xl leading-tight animate-in slide-in-from-bottom-8 duration-700 delay-100"
-              style={{ 
-                transform: `translateY(${scrollY * -0.03}px)`,
+          {/* Hero Section */}
+          {!packingItems && (
+            <div
+              className="text-center mb-12 max-w-4xl mx-auto w-full"
+              style={{
+                transform: `translateY(${scrollY * -0.05}px)`,
+                opacity: Math.max(0, 1 - scrollY / 800),
               }}
             >
-              Pack Perfect.
-              <br />
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent animate-shimmer bg-[length:200%_auto]">
-                Travel Stress-Free.
-              </span>
-            </h1>
-
-            <p 
-              className="text-xl sm:text-2xl text-white/95 mb-8 drop-shadow-lg max-w-2xl mx-auto font-medium animate-in slide-in-from-bottom-8 duration-700 delay-200"
-              style={{ 
-                transform: `translateY(${scrollY * -0.02}px)`,
-              }}
-            >
-              AI creates your{" "}
-              <span className="text-purple-300 font-bold">
-                perfect packing list
-              </span>{" "}
-              in 30 seconds.
-            </p>
-
-            <div 
-              className="flex items-center justify-center gap-2 mb-10 animate-in fade-in duration-700 delay-300"
-              style={{ 
-                transform: `translateY(${scrollY * -0.01}px)`,
-              }}
-            >
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="w-6 h-6 fill-yellow-400 text-yellow-400 drop-shadow-lg glow-pulse"
-                    style={{ animationDelay: `${i * 0.1}s` }}
-                  />
-                ))}
+              <div className="inline-flex items-center gap-2 glass-dark px-4 py-2 rounded-full text-sm font-medium mb-6 border border-white/20 text-white animate-in slide-in-from-top-4 duration-700">
+                <TrendingUp className="w-4 h-4 text-green-400" />
+                <span>
+                  {liveCounter.toLocaleString()}+ travelers packed today
+                </span>
               </div>
-              <span className="text-white font-semibold drop-shadow">
-                4.9/5 from 2,341 travelers
-              </span>
-            </div>
 
-            {/* Elite CTA Button - Single Icon with Glow */}
-            <button
-              onClick={handleStartConversation}
-              // The elite-cta class uses the RESTORED, stronger glow defined in globals.css
-              className="group relative bg-gradient-to-r from-purple-600 to-pink-600 text-white px-12 py-6 text-2xl font-bold rounded-2xl transition-all shadow-2xl hover:shadow-3xl hover:scale-110 active:scale-95 animate-in zoom-in duration-700 delay-400 elite-cta"
-              style={{ 
-                transform: `translateY(${scrollY * 0}px)`,
-              }}
-            >
-              <span className="relative z-10 flex items-center gap-3 justify-center">
-                <Sparkles className="w-8 h-8" />
-                Start Packing with AI
-              </span>
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-700 to-pink-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            </button>
+              <h1
+                className="text-5xl sm:text-7xl font-extrabold mb-6 text-white drop-shadow-2xl leading-tight animate-in slide-in-from-bottom-8 duration-700 delay-100"
+                style={{
+                  transform: `translateY(${scrollY * -0.03}px)`,
+                }}
+              >
+                Pack Perfect.
+                <br />
+                <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent animate-shimmer bg-[length:200%_auto]">
+                  Travel Stress-Free.
+                </span>
+              </h1>
 
-            <p className="mt-6 text-white/90 text-lg font-medium flex flex-wrap items-center justify-center gap-4 animate-in fade-in duration-700 delay-500">
-              <span className="glass-dark px-4 py-2 rounded-full border border-white/20">
-                <MessageSquare className="w-4 h-4 inline mr-2" />
-                Chat naturally
-              </span>
-              <span className="glass-dark px-4 py-2 rounded-full border border-white/20">
-                <Zap className="w-4 h-4 inline mr-2" />
-                Instant results
-              </span>
-              <span className="glass-dark px-4 py-2 rounded-full border border-white/20">
-                <CheckCircle2 className="w-4 h-4 inline mr-2" />
-                100% customized
-              </span>
-            </p>
-          </div>
+              <p
+                className="text-xl sm:text-2xl text-white/95 mb-8 drop-shadow-lg max-w-2xl mx-auto font-medium animate-in slide-in-from-bottom-8 duration-700 delay-200"
+                style={{
+                  transform: `translateY(${scrollY * -0.02}px)`,
+                }}
+              >
+                AI creates your{" "}
+                <span className="text-purple-300 font-bold">
+                  perfect packing list
+                </span>{" "}
+                in 30 seconds.
+              </p>
 
-          {/* Results Section */}
-          <div id="results-section" className="mt-8 w-full max-w-6xl">
-            {packingItems && packingItems.length > 0 && (
-              <div className="w-full animate-in slide-in-from-bottom-8 duration-500">
-                {/* Action Buttons */}
-                <div className="flex justify-between items-center gap-2 mb-6 max-w-4xl mx-auto flex-wrap">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setGroupByCategory(!groupByCategory)}
-                      className="px-5 py-2.5 text-white glass-dark hover:glass-strong rounded-xl border border-white/20 transition-all shadow-lg text-sm font-semibold hover:scale-105"
-                    >
-                      {groupByCategory ? "Show All" : "Group by Category"}
-                    </button>
-                  </div>
-
-                  <div className="flex gap-2 ml-auto">
-                    <button
-                      onClick={handleShare}
-                      title="Share list"
-                      className="p-3 text-white glass-dark hover:glass-strong rounded-xl border border-white/20 transition-all shadow-lg hover:scale-110"
-                    >
-                      <Share2 size={20} />
-                    </button>
-                    <button
-                      onClick={handleDownloadPDF}
-                      title="Download PDF"
-                      className="p-3 text-white glass-dark hover:glass-strong rounded-xl border border-white/20 transition-all shadow-lg hover:scale-110"
-                    >
-                      <Download size={20} />
-                    </button>
-                    <button
-                      onClick={handleEmailList}
-                      title="Email list"
-                      className="p-3 text-white glass-dark hover:glass-strong rounded-xl border border-white/20 transition-all shadow-lg hover:scale-110"
-                    >
-                      <Mail size={20} />
-                    </button>
-                    <button
-                      onClick={handleDelete}
-                      title="Clear list"
-                      className="p-3 text-white glass-dark hover:bg-red-500/40 rounded-xl border border-white/20 transition-all shadow-lg hover:scale-110"
-                    >
-                      <Trash2 size={20} />
-                    </button>
-                  </div>
+              <div
+                className="flex items-center justify-center gap-2 mb-10 animate-in fade-in duration-700 delay-300"
+                style={{
+                  transform: `translateY(${scrollY * -0.01}px)`,
+                }}
+              >
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className="w-6 h-6 fill-yellow-400 text-yellow-400 drop-shadow-lg glow-pulse"
+                      style={{ animationDelay: `${i * 0.1}s` }}
+                    />
+                  ))}
                 </div>
+                <span className="text-white font-semibold drop-shadow">
+                  4.9/5 from 2,341 travelers
+                </span>
+              </div>
 
-                {/* Packing List - Grouped View (Changed grid-cols-3 to grid-cols-4 and h-56 to h-48) */}
-                <div className="glass-strong-dark rounded-2xl p-6 sm:p-8 shadow-2xl border border-white/20">
-                  {groupByCategory ? (
-                    <div className="space-y-10">
-                      {Object.entries(getGroupedItems()).map(
-                        ([category, items], catIdx) => (
+              <button
+                onClick={handleStartConversation}
+                className="group relative bg-gradient-to-r from-purple-600 to-pink-600 text-white px-12 py-6 text-2xl font-bold rounded-2xl transition-all shadow-2xl hover:shadow-3xl hover:scale-110 active:scale-95 animate-in zoom-in duration-700 delay-400 elite-cta"
+                style={{
+                  transform: `translateY(${scrollY * 0}px)`,
+                }}
+              >
+                <span className="relative z-10 flex items-center gap-3 justify-center">
+                  <Sparkles className="w-8 h-8" />
+                  Start Packing with AI
+                </span>
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-700 to-pink-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              </button>
+
+              <p className="mt-6 text-white/90 text-lg font-medium flex flex-wrap items-center justify-center gap-4 animate-in fade-in duration-700 delay-500">
+                <span className="glass-dark px-4 py-2 rounded-full border border-white/20">
+                  <MessageSquare className="w-4 h-4 inline mr-2" />
+                  Chat naturally
+                </span>
+                <span className="glass-dark px-4 py-2 rounded-full border border-white/20">
+                  <Zap className="w-4 h-4 inline mr-2" />
+                  Instant results
+                </span>
+                <span className="glass-dark px-4 py-2 rounded-full border border-white/20">
+                  <CheckCircle2 className="w-4 h-4 inline mr-2" />
+                  100% customized
+                </span>
+              </p>
+            </div>
+          )}
+
+          {/* COMPACT Results Section */}
+          {packingItems && packingItems.length > 0 && (
+            <div
+              ref={resultsRef}
+              className="w-full max-w-4xl animate-in slide-in-from-bottom-8 duration-500 mb-12"
+            >
+              {/* Action Buttons - Compact */}
+              <div className="flex justify-between items-center gap-2 mb-4 flex-wrap">
+                <button
+                  onClick={() => setGroupByCategory(!groupByCategory)}
+                  className="px-4 py-2 text-white glass-dark hover:glass-strong rounded-xl border border-white/20 transition-all text-sm font-semibold"
+                >
+                  {groupByCategory ? "Show All" : "By Category"}
+                </button>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleShare}
+                    className="p-2 text-white glass-dark hover:glass-strong rounded-xl border border-white/20 transition-all"
+                    title="Share"
+                  >
+                    <Share2 size={18} />
+                  </button>
+                  <button
+                    onClick={handleDownloadPDF}
+                    className="p-2 text-white glass-dark hover:glass-strong rounded-xl border border-white/20 transition-all"
+                    title="PDF"
+                  >
+                    <Download size={18} />
+                  </button>
+                  <button
+                    onClick={handleEmailList}
+                    className="p-2 text-white glass-dark hover:glass-strong rounded-xl border border-white/20 transition-all"
+                    title="Email"
+                  >
+                    <Mail size={18} />
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="p-2 text-white glass-dark hover:bg-red-500/40 rounded-xl border border-white/20 transition-all"
+                    title="Clear"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Compact Packing List */}
+              <div className="glass-strong-dark rounded-2xl p-4 sm:p-6 shadow-2xl border border-white/20 max-h-[70vh] overflow-y-auto">
+                {groupByCategory ? (
+                  <div className="space-y-3">
+                    {Object.entries(getGroupedItems()).map(
+                      ([category, items]) => {
+                        const isExpanded = expandedCategories.has(category);
+                        const categoryChecked = items.filter(
+                          (i) => i.checked
+                        ).length;
+
+                        return (
                           <div
                             key={category}
-                            className="animate-in slide-in-from-bottom-4 duration-500"
-                            style={{ animationDelay: `${catIdx * 0.1}s` }}
+                            className="bg-white/5 rounded-xl overflow-hidden"
                           >
-                            <h2 className="text-3xl font-bold text-white mb-6 drop-shadow-lg flex items-center gap-3">
-                              <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl flex items-center justify-center shadow-lg hover:rotate-12 transition-transform pulse-glow text-white">
-                                {getCategoryIcon(category)}
+                            {/* Category Header - Collapsible */}
+                            <button
+                              onClick={() => toggleCategory(category)}
+                              className="w-full flex items-center justify-between p-4 hover:bg-white/10 transition-all"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center text-white">
+                                  {getCategoryIcon(category)}
+                                </div>
+                                <div className="text-left">
+                                  <h3 className="font-bold text-white text-lg">
+                                    {category}
+                                  </h3>
+                                  <p className="text-xs text-white/60">
+                                    {categoryChecked}/{items.length} packed
+                                  </p>
+                                </div>
                               </div>
-                              {category}
-                            </h2>
-                            {/* Denser Grid: sm:grid-cols-2 lg:grid-cols-4 */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"> 
-                              {items.map((item) => {
-                                const globalIndex = packingItems.findIndex(
-                                  (i) => i === item
-                                );
-                                return (
-                                  <div
-                                    key={item.item_name + globalIndex}
-                                    className={`group relative bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 ${
-                                      item.checked
-                                        ? "ring-4 ring-green-500 opacity-90"
-                                        : ""
-                                    }`}
-                                  >
-                                    {/* Reduced Height: h-56 to h-48 */}
-                                    <div className="relative h-48 bg-gradient-to-br from-purple-100 via-pink-50 to-blue-50 overflow-hidden">
-                                      <div className="absolute inset-0 bg-gradient-to-br from-purple-400/30 to-pink-400/30 group-hover:scale-110 transition-transform duration-500"></div>
-                                      <div className="absolute inset-0 flex items-center justify-center">
-                                        <div className="transform group-hover:scale-125 transition-transform duration-300 filter drop-shadow-lg">
-                                          {getItemIcon(item.item_name)}
+                              {isExpanded ? (
+                                <ChevronUp className="w-5 h-5 text-white/70" />
+                              ) : (
+                                <ChevronDown className="w-5 h-5 text-white/70" />
+                              )}
+                            </button>
+
+                            {/* Category Items - Collapsible */}
+                            {isExpanded && (
+                              <div className="p-2 space-y-2">
+                                {items.map((item) => {
+                                  const globalIndex = packingItems.findIndex(
+                                    (i) => i === item
+                                  );
+                                  return (
+                                    <div
+                                      key={item.item_name + globalIndex}
+                                      className={`bg-white/10 rounded-lg p-3 transition-all ${
+                                        item.checked
+                                          ? "opacity-70 bg-green-500/20"
+                                          : ""
+                                      }`}
+                                    >
+                                      <div className="flex items-start gap-3">
+                                        <button
+                                          onClick={() =>
+                                            toggleItemChecked(globalIndex)
+                                          }
+                                          className="mt-1 w-6 h-6 rounded-full border-2 border-white/40 flex items-center justify-center flex-shrink-0 hover:border-white transition-all"
+                                        >
+                                          {item.checked && (
+                                            <Check className="w-4 h-4 text-green-400" />
+                                          )}
+                                        </button>
+
+                                        <div className="flex-1 min-w-0">
+                                          <h4 className="font-semibold text-white text-sm mb-1">
+                                            {item.item_name}
+                                          </h4>
+                                          <p className="text-xs text-white/70 leading-relaxed">
+                                            {item.description}
+                                          </p>
                                         </div>
-                                      </div>
-                                      <button
-                                        onClick={() =>
-                                          toggleItemChecked(globalIndex)
-                                        }
-                                        className="absolute top-4 left-4 w-12 h-12 bg-white rounded-full shadow-2xl flex items-center justify-center hover:scale-125 transition-all z-10 border-2 border-purple-200 pulse-glow"
-                                      >
-                                        {item.checked && (
-                                          <Check className="w-7 h-7 text-green-600 animate-bounce" />
-                                        )}
-                                      </button>
-                                    </div>
-                                    <div className="p-4"> {/* Reduced padding: p-6 to p-4 */}
-                                      <h3 className="font-bold text-lg mb-1 text-gray-900 group-hover:text-purple-600 transition-colors">
-                                        {item.item_name}
-                                      </h3>
-                                      <p className="text-xs text-gray-600 mb-3 leading-relaxed">
-                                        {item.description}
-                                      </p>
-                                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                                        <span className="inline-block text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full">
-                                          {item.category}
-                                        </span>
+
                                         <button
                                           onClick={() => handleShopClick(item)}
-                                          className="flex items-center gap-1 text-xs font-bold text-white bg-gradient-to-r from-green-500 to-emerald-600 px-3 py-1.5 rounded-full hover:shadow-lg hover:scale-110 transition-all pulse-glow"
+                                          className="flex-shrink-0 px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs font-bold rounded-full hover:scale-105 transition-all"
                                         >
-                                          Shop Now
+                                          Shop
                                         </button>
                                       </div>
                                     </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  ) : (
-                    // Packing List - Ungrouped View (Changed grid-cols-3 to grid-cols-4 and h-56 to h-48)
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"> 
-                      {packingItems.map((item, index) => (
-                        <div
-                          key={item.item_name + index}
-                          className={`group relative bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 ${
-                            item.checked
-                              ? "ring-4 ring-green-500 opacity-90"
-                              : ""
-                          }`}
-                        >
-                          {/* Reduced Height: h-56 to h-48 */}
-                          <div className="relative h-48 bg-gradient-to-br from-purple-100 via-pink-50 to-blue-50 overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-br from-purple-400/30 to-pink-400/30 group-hover:scale-110 transition-transform duration-500"></div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="transform group-hover:scale-125 transition-transform duration-300 filter drop-shadow-lg">
-                                {getItemIcon(item.item_name)}
+                                  );
+                                })}
                               </div>
-                            </div>
-                            <button
-                              onClick={() => toggleItemChecked(index)}
-                              className="absolute top-4 left-4 w-12 h-12 bg-white rounded-full shadow-2xl flex items-center justify-center hover:scale-125 transition-all z-10 border-2 border-purple-200"
-                            >
-                              {item.checked && (
-                                <Check className="w-7 h-7 text-green-600 animate-bounce" />
-                              )}
-                            </button>
+                            )}
                           </div>
-                          <div className="p-4"> {/* Reduced padding: p-6 to p-4 */}
-                            <h3 className="font-bold text-lg mb-1 text-gray-900 group-hover:text-purple-600 transition-colors">
+                        );
+                      }
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {packingItems.map((item, index) => (
+                      <div
+                        key={item.item_name + index}
+                        className={`bg-white/10 rounded-lg p-3 transition-all ${
+                          item.checked ? "opacity-70 bg-green-500/20" : ""
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <button
+                            onClick={() => toggleItemChecked(index)}
+                            className="mt-1 w-6 h-6 rounded-full border-2 border-white/40 flex items-center justify-center flex-shrink-0 hover:border-white transition-all"
+                          >
+                            {item.checked && (
+                              <Check className="w-4 h-4 text-green-400" />
+                            )}
+                          </button>
+
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-white text-sm mb-1">
                               {item.item_name}
-                            </h3>
-                            <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+                            </h4>
+                            <p className="text-xs text-white/70 leading-relaxed mb-1">
                               {item.description}
                             </p>
-                            <div className="flex items-center justify-between gap-2 flex-wrap">
-                              <span className="inline-block text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full">
-                                {item.category}
-                              </span>
-                              <button
-                                onClick={() => handleShopClick(item)}
-                                className="flex items-center gap-1 text-xs font-bold text-white bg-gradient-to-r from-green-500 to-emerald-600 px-3 py-1.5 rounded-full hover:shadow-lg hover:scale-110 transition-all"
-                              >
-                                Shop Now
-                              </button>
-                            </div>
+                            <span className="inline-block text-xs font-bold text-purple-300 bg-purple-500/20 px-2 py-0.5 rounded-full">
+                              {item.category}
+                            </span>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
 
-          {/* Testimonials with Parallax */}
-          <div 
-            className="mt-20 w-full max-w-5xl animate-in fade-in duration-700"
-            style={{ 
-              transform: `translateY(${Math.max(0, (scrollY - 800) * -0.08)}px)`,
-              opacity: Math.min(1, Math.max(0, (scrollY - 400) / 300))
-            }}
-          >
-            <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-12 drop-shadow-lg">
-              Loved by Travelers Worldwide
-            </h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[
-                {
-                  name: "Sarah M.",
-                  location: "New York",
-                  text: "The AI chat was so intuitive! It knew exactly what I needed for my beach trip.",
-                  rating: 5,
-                },
-                {
-                  name: "James K.",
-                  location: "London",
-                  text: "Quick replies made it so easy. Had my packing list in under a minute!",
-                  rating: 5,
-                },
-                {
-                  name: "Maria G.",
-                  location: "Barcelona",
-                  text: "Love how it adapts to my needs. Asked for 'more minimal' and it adjusted perfectly!",
-                  rating: 5,
-                },
-              ].map((testimonial, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-2xl p-6 shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-300 animate-in slide-in-from-bottom-4"
-                  style={{ animationDelay: `${i * 0.1}s` }}
-                >
-                  <div className="flex mb-3">
-                    {[...Array(testimonial.rating)].map((_, j) => (
-                      <Star
-                        key={j}
-                        className="w-5 h-5 fill-yellow-400 text-yellow-400"
-                      />
+                          <button
+                            onClick={() => handleShopClick(item)}
+                            className="flex-shrink-0 px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs font-bold rounded-full hover:scale-105 transition-all"
+                          >
+                            Shop
+                          </button>
+                        </div>
+                      </div>
                     ))}
                   </div>
-                  <p className="text-gray-700 mb-4 italic">
-                    &ldquo;{testimonial.text}&rdquo;
-                  </p>
-                  <div>
-                    <div className="font-bold text-gray-900">
-                      {testimonial.name}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {testimonial.location}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                )}
+              </div>
 
-          {/* FAQ with Parallax */}
-          <div 
-            className="mt-20 w-full max-w-4xl animate-in fade-in duration-700"
-            style={{ 
-              transform: `translateY(${Math.max(0, (scrollY - 1200) * -0.06)}px)`,
-              opacity: Math.min(1, Math.max(0, (scrollY - 800) / 300))
-            }}
-          >
-            <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-12 drop-shadow-lg">
-              Frequently Asked Questions
-            </h2>
-            <div className="space-y-4">
-              {[
-                {
-                  q: "How does the AI chat work?",
-                  a: "Just chat naturally about your trip! Tell us where you're going, what you'll do, and how long you'll be there. Our AI asks clarifying questions and creates a personalized packing list based on your conversation.",
-                },
-                {
-                  q: "Is Packmind AI really free?",
-                  a: "Yes! 100% free, no credit card required, no hidden fees. We make money through affiliate commissions when you shop for recommended items.",
-                },
-                {
-                  q: "Can I modify my list after it's generated?",
-                  a: "Absolutely! Just keep chatting. Say things like 'add more warm clothes' or 'make it more minimal' and the AI will adjust your list accordingly.",
-                },
-                {
-                  q: "What about the 'Shop Now' buttons?",
-                  a: "We've curated high-quality product recommendations in Budget, Mid-Range, and Premium tiers. Click 'Shop Now' to see options that fit your budget. We earn a small commission if you purchase (at no extra cost to you).",
-                },
-              ].map((faq, i) => (
-                <div
-                  key={i}
-                  className="glass-dark hover:glass-strong rounded-xl p-6 border border-white/20 transition-all hover:scale-102 animate-in slide-in-from-left-4"
-                  style={{ animationDelay: `${i * 0.05}s` }}
+              {/* Quick action to continue conversation */}
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => setConversationMode(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:scale-105 transition-all shadow-lg inline-flex items-center gap-2"
                 >
-                  <h3 className="font-bold text-white text-lg mb-2">{faq.q}</h3>
-                  <p className="text-white/90">{faq.a}</p>
-                </div>
-              ))}
+                  <MessageSquare className="w-5 h-5" />
+                  Modify List with AI
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Testimonials - Only show when no results */}
+          {!packingItems && (
+            <>
+              <div
+                className="mt-20 w-full max-w-5xl animate-in fade-in duration-700"
+                style={{
+                  transform: `translateY(${Math.max(
+                    0,
+                    (scrollY - 800) * -0.08
+                  )}px)`,
+                  opacity: Math.min(1, Math.max(0, (scrollY - 400) / 300)),
+                }}
+              >
+                <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-12 drop-shadow-lg">
+                  Loved by Travelers Worldwide
+                </h2>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[
+                    {
+                      name: "Sarah M.",
+                      location: "New York",
+                      text: "The AI chat was so intuitive! It knew exactly what I needed for my beach trip.",
+                      rating: 5,
+                    },
+                    {
+                      name: "James K.",
+                      location: "London",
+                      text: "Quick replies made it so easy. Had my packing list in under a minute!",
+                      rating: 5,
+                    },
+                    {
+                      name: "Maria G.",
+                      location: "Barcelona",
+                      text: "Love how it adapts to my needs. Asked for 'more minimal' and it adjusted perfectly!",
+                      rating: 5,
+                    },
+                  ].map((testimonial, i) => (
+                    <div
+                      key={i}
+                      className="bg-white rounded-2xl p-6 shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-300 animate-in slide-in-from-bottom-4"
+                      style={{ animationDelay: `${i * 0.1}s` }}
+                    >
+                      <div className="flex mb-3">
+                        {[...Array(testimonial.rating)].map((_, j) => (
+                          <Star
+                            key={j}
+                            className="w-5 h-5 fill-yellow-400 text-yellow-400"
+                          />
+                        ))}
+                      </div>
+                      <p className="text-gray-700 mb-4 italic">
+                        &ldquo;{testimonial.text}&rdquo;
+                      </p>
+                      <div>
+                        <div className="font-bold text-gray-900">
+                          {testimonial.name}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {testimonial.location}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div
+                className="mt-20 w-full max-w-4xl animate-in fade-in duration-700"
+                style={{
+                  transform: `translateY(${Math.max(
+                    0,
+                    (scrollY - 1200) * -0.06
+                  )}px)`,
+                  opacity: Math.min(1, Math.max(0, (scrollY - 800) / 300)),
+                }}
+              >
+                <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-12 drop-shadow-lg">
+                  Frequently Asked Questions
+                </h2>
+                <div className="space-y-4">
+                  {[
+                    {
+                      q: "How does the AI chat work?",
+                      a: "Just chat naturally about your trip! Tell us where you're going, what you'll do, and how long you'll be there. Our AI asks clarifying questions and creates a personalized packing list based on your conversation.",
+                    },
+                    {
+                      q: "Is Packmind AI really free?",
+                      a: "Yes! 100% free, no credit card required, no hidden fees. We make money through affiliate commissions when you shop for recommended items.",
+                    },
+                    {
+                      q: "Can I modify my list after it's generated?",
+                      a: "Absolutely! Just keep chatting. Say things like 'add more warm clothes' or 'make it more minimal' and the AI will adjust your list accordingly.",
+                    },
+                    {
+                      q: "What about the 'Shop Now' buttons?",
+                      a: "We've curated high-quality product recommendations in Budget, Mid-Range, and Premium tiers. Click 'Shop Now' to see options that fit your budget. We earn a small commission if you purchase (at no extra cost to you).",
+                    },
+                  ].map((faq, i) => (
+                    <div
+                      key={i}
+                      className="glass-dark hover:glass-strong rounded-xl p-6 border border-white/20 transition-all hover:scale-102 animate-in slide-in-from-left-4"
+                      style={{ animationDelay: `${i * 0.05}s` }}
+                    >
+                      <h3 className="font-bold text-white text-lg mb-2">
+                        {faq.q}
+                      </h3>
+                      <p className="text-white/90">{faq.a}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </main>
 
         {/* Footer */}
@@ -1078,9 +1007,7 @@ export default function PackmindAI() {
           </div>
         </footer>
 
-        {/* ============================================ */}
-        {/* MODALS - All Code Restored */}
-        {/* ============================================ */}
+        {/* Modals */}
         <AffiliateSuggestionModal
           isOpen={showAffiliateModal}
           onClose={() => {
@@ -1115,7 +1042,8 @@ export default function PackmindAI() {
                 placeholder="Your name (for PDF header)"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4 focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg mb-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white placeholder:text-gray-500"
+                style={{ color: "#111827" }}
               />
               <button
                 onClick={handleConfirmPDF}
@@ -1138,35 +1066,106 @@ export default function PackmindAI() {
                 <X size={24} />
               </button>
               <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Mail className="w-8 h-8 text-green-600" />
+                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Mail className="w-8 h-8 text-purple-600" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">
                   Email Your List
                 </h3>
-                <p className="text-gray-600">Access anywhere, anytime</p>
+                <p className="text-gray-600">Access it anywhere, anytime</p>
               </div>
               <input
                 type="text"
                 placeholder="Your name"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 bg-white placeholder:text-gray-500"
+                style={{ color: "#111827" }}
               />
               <input
                 type="email"
                 placeholder="Your email"
                 value={userEmail}
                 onChange={(e) => setUserEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4 focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg mb-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 bg-white placeholder:text-gray-500"
+                style={{ color: "#111827" }}
               />
               <button
                 onClick={handleConfirmEmail}
                 disabled={emailSending}
-                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 transition-all hover:scale-105"
+                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 transition-all hover:scale-105"
               >
-                {emailSending ? "Sending..." : "Send to Email"}
+                {emailSending ? "Sending..." : "Send to My Email"}
               </button>
+            </div>
+          </div>
+        )}
+
+        {showEmailModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl relative animate-in slide-in-from-bottom-4 duration-300">
+              <button
+                onClick={() => setShowEmailModal(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={24} />
+              </button>
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 pulse-glow">
+                  <Zap className="w-8 h-8 text-purple-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  Get Free Packing Guide
+                </h3>
+                <p className="text-gray-600">Ultimate checklist + pro tips</p>
+              </div>
+              <input
+                type="email"
+                placeholder="Enter your email"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg mb-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-gray-900 bg-white placeholder:text-gray-500"
+                style={{ color: "#111827" }}
+                value={userEmail}
+                onChange={(e) => setUserEmail(e.target.value)}
+              />
+              <button
+                onClick={async () => {
+                  if (
+                    userEmail.trim() &&
+                    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)
+                  ) {
+                    try {
+                      const response = await fetch("/api/send-guide", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: userEmail }),
+                      });
+
+                      if (response.ok) {
+                        trackEmailCapture(userEmail);
+                        setEmailCaptured(true);
+                        setShowEmailModal(false);
+                        alert(
+                          "✅ Success! Check your email for the Ultimate Packing Guide!"
+                        );
+                        setUserEmail("");
+                      } else {
+                        alert("Failed to send guide. Please try again.");
+                      }
+                    } catch (error) {
+                      console.error("Guide send error:", error);
+                      alert("Failed to send guide. Please try again.");
+                    }
+                  } else {
+                    alert("Please enter a valid email");
+                  }
+                }}
+                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-all hover:scale-105"
+              >
+                Send Me The Guide →
+              </button>
+              <p className="text-xs text-gray-500 text-center mt-3">
+                No spam. Unsubscribe anytime.
+              </p>
             </div>
           </div>
         )}
@@ -1218,13 +1217,10 @@ export default function PackmindAI() {
           </div>
         )}
 
-        {/* Elite Conversation Modal - RE-ENGINEERED FOR MINIMALISM */}
+        {/* Conversation Modal - Smooth */}
         {conversationMode && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-            {/* Modal Container: Minimalist Glass Frame */}
             <div className="bg-black/50 backdrop-blur-3xl rounded-3xl shadow-3xl max-w-5xl w-full h-[85vh] flex flex-col animate-in slide-in-from-bottom-8 duration-500 border border-white/5 overflow-hidden">
-              
-              {/* Elite Header - NO BORDER/BACKGROUND */}
               <div className="relative p-6 bg-transparent">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -1239,7 +1235,6 @@ export default function PackmindAI() {
                         AI Packing Strategist
                       </h2>
                       <p className="text-sm text-white/70 flex items-center gap-2">
-                        {/* ICON for Status/Live */}
                         <Globe className="w-3 h-3" />
                         Online & ready to craft your list
                       </p>
@@ -1254,7 +1249,6 @@ export default function PackmindAI() {
                 </div>
               </div>
 
-              {/* Chat Messages Area - Clean, Subtle Background */}
               <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-transparent to-white/5">
                 {messages.map((msg, index) => (
                   <div
@@ -1270,10 +1264,8 @@ export default function PackmindAI() {
                     )}
                     <div
                       className={`max-w-[75%] rounded-3xl px-6 py-4 transition-all ${
-                        // USER BUBBLE (Gradient)
                         msg.role === "user"
                           ? "bg-gradient-to-br from-purple-600 to-pink-600 text-white shadow-lg shadow-pink-500/30"
-                          // AI BUBBLE (Clean Transparent Black)
                           : "bg-white/10 text-white/95 shadow-lg shadow-black/30"
                       }`}
                     >
@@ -1289,7 +1281,6 @@ export default function PackmindAI() {
                                 key={idx}
                                 onClick={() => handleSendMessage(suggestion)}
                                 disabled={isTyping}
-                                // SUGGESTION BUTTONS (Minimalist Glass Dark) - Added Sparkles icon
                                 className="group px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full text-sm font-medium text-white/90 border border-white/5 transition-all disabled:opacity-50 hover:scale-[1.03] shadow-md flex items-center gap-2"
                               >
                                 <Sparkles className="w-3 h-3 text-purple-400" />
@@ -1313,7 +1304,6 @@ export default function PackmindAI() {
                     <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mr-3 flex-shrink-0 shadow-lg">
                       <Sparkles className="w-5 h-5 text-white" />
                     </div>
-                    {/* TYPING INDICATOR (Cleaner, Lighter) */}
                     <div className="bg-white/10 rounded-3xl px-6 py-4 shadow-md">
                       <div className="flex gap-2">
                         <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"></div>
@@ -1356,7 +1346,6 @@ export default function PackmindAI() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Elite Input Area - MINIMALIST AND CLEAN */}
               <div className="p-6 bg-black/40 backdrop-blur-lg border-t border-white/10">
                 <div className="flex gap-3">
                   <input
@@ -1371,13 +1360,11 @@ export default function PackmindAI() {
                     }}
                     placeholder="Describe your trip..."
                     disabled={isTyping}
-                    // INPUT FIELD (Clean, minimal, transparent look)
                     className="flex-1 px-6 py-4 border-none rounded-2xl focus:ring-4 focus:ring-purple-400 focus:border-purple-400 disabled:opacity-50 transition-all text-lg bg-white/10 text-white/95 placeholder:text-white/60 shadow-inner shadow-black/30"
                   />
                   <button
                     onClick={() => handleSendMessage()}
                     disabled={isTyping || !userInput.trim()}
-                    // The elite-cta class uses the RESTORED, stronger glow defined in globals.css
                     className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-2xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 shadow-lg hover:shadow-xl hover:scale-105 elite-cta"
                   >
                     <Send size={22} />

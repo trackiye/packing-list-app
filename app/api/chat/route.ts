@@ -1,4 +1,4 @@
-// app/api/chat/route.ts - FULLY STABILIZED AND OPTIMIZED (TypeScript Compliant)
+// app/api/chat/route.ts - FIXED JSON PARSING ISSUE
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
@@ -11,7 +11,6 @@ interface PackingItem {
   category: string;
 }
 
-// Interface for the payload being passed to the API route
 interface ApiPayload {
   message: string;
   conversationHistory: string;
@@ -23,7 +22,7 @@ export async function POST(request: NextRequest) {
     const { message, conversationHistory, packingItems }: ApiPayload =
       await request.json();
 
-    // 1. Check for API key (Required for AI SDK)
+    // 1. Check for API key
     if (!process.env.OPENAI_API_KEY) {
       console.error("❌ OPENAI_API_KEY not found in environment variables");
       return NextResponse.json(
@@ -44,7 +43,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Build system prompt - Optimized for Speed, Decisiveness & Conversion
+    // 2. Build system prompt
     const systemPrompt = `You are the **PackMind Elite Packing Strategist**, a highly efficient and concise AI assistant. Your sole purpose is to gather crucial trip details FAST and generate the perfect packing list.
 
 TONE & EFFICIENCY RULES:
@@ -56,6 +55,7 @@ TONE & EFFICIENCY RULES:
 
 CONVERSION OUTPUT (STRICT JSON RULE):
 -   **List Generation Phase:** When Critical Rule 2 is met, you **MUST ONLY** return a single JSON object. Do not include any conversational text, greetings, or explanations outside of the JSON block.
+-   **CRITICAL: All string values in JSON must NOT contain unescaped newlines, tabs, or control characters. Keep descriptions on a single line.**
 
 PACKING LIST FORMAT (when ready to generate):
 Return **ONLY** a single JSON object with the "packingList" array:
@@ -63,7 +63,7 @@ Return **ONLY** a single JSON object with the "packingList" array:
   "packingList": [
     {
       "item_name": "Specific Item Name (e.g., Noise-Canceling Headphones)",
-      "description": "A brief, compelling reason why this item is essential for *their specific trip* (e.g., 'For restful long-haul flights and focus during travel.')",
+      "description": "A brief, compelling reason why this item is essential for their specific trip (e.g., For restful long-haul flights and focus during travel.)",
       "category": "Category Name"
     }
   ]
@@ -91,44 +91,77 @@ ${
 
 User's New Message: ${message}`;
 
-    // ✅ CORRECT - Remove maxTokens if it's not supported
     const { text: aiResponse } = await generateText({
       model: openai("gpt-4o-mini"),
       prompt: systemPrompt,
       temperature: 0.7,
-      // Remove maxTokens line completely
     });
 
-    // 4. Extract packing list from response
+    // 4. Extract packing list from response - FIXED PARSING
     let packingList: PackingItem[] = [];
     let cleanMessage = aiResponse;
 
-    // Look for JSON in response (GPT models often embed the JSON)
-    const jsonMatch = aiResponse.match(
-      /\{[\s\S]*?"packingList"[\s\S]*?\[[\s\S]*?\][\s\S]*?\}/
-    );
+    // Look for JSON in response - improved regex to handle edge cases
+    const jsonMatch =
+      aiResponse.match(/```json\s*([\s\S]*?)\s*```/) ||
+      aiResponse.match(/\{[\s\S]*?"packingList"[\s\S]*?\[[\s\S]*?\][\s\S]*?\}/);
 
-    // CRITICAL RESILIENCE FIX: If a match is found, attempt safe parsing.
     if (jsonMatch) {
       try {
-        const jsonString = jsonMatch[0];
+        // Get the JSON string (use capture group if available, otherwise full match)
+        let jsonString = jsonMatch[1] || jsonMatch[0];
+
+        // **CRITICAL FIX**: Remove control characters that break JSON parsing
+        jsonString = jsonString
+          .replace(/[\x00-\x1F\x7F]/g, "") // Remove all control characters
+          .trim();
+
+        console.log(
+          "🔍 Attempting to parse JSON:",
+          jsonString.substring(0, 200) + "..."
+        );
+
         const parsed = JSON.parse(jsonString);
 
         if (parsed.packingList && Array.isArray(parsed.packingList)) {
-          // Asserting type for the list items
           packingList = parsed.packingList as PackingItem[];
-          // Remove JSON from message, only keeping any conversational intro/outro text
-          cleanMessage = aiResponse.replace(jsonString, "").trim();
+          // Remove JSON from message
+          cleanMessage = aiResponse.replace(jsonMatch[0], "").trim();
+
+          console.log(`✅ Successfully parsed ${packingList.length} items`);
         }
       } catch (e: unknown) {
-        // FIX: Use unknown for catch argument
+        const error = e as Error;
         console.error(
-          "❌ JSON Extraction Error: AI provided malformed JSON or surrounding text.",
-          e
+          "❌ JSON Extraction Error: AI provided malformed JSON.",
+          error.message
         );
-        // If parsing fails, we treat the entire response as a clean conversational message.
-        packingList = [];
-        cleanMessage = aiResponse;
+
+        // Log the problematic JSON for debugging
+        const jsonString = jsonMatch[1] || jsonMatch[0];
+        console.error("Problematic JSON:", jsonString);
+
+        // Try one more time with aggressive cleaning
+        try {
+          const cleanedJson = (jsonMatch[1] || jsonMatch[0])
+            .replace(/[\x00-\x1F\x7F]/g, " ") // Replace control chars with spaces
+            .replace(/\s+/g, " ") // Normalize whitespace
+            .trim();
+
+          const parsed = JSON.parse(cleanedJson);
+          if (parsed.packingList && Array.isArray(parsed.packingList)) {
+            packingList = parsed.packingList as PackingItem[];
+            cleanMessage = aiResponse.replace(jsonMatch[0], "").trim();
+            console.log(
+              `✅ Recovered with aggressive cleaning: ${packingList.length} items`
+            );
+          }
+        } catch (secondError) {
+          console.error("❌ Second parse attempt failed:", secondError);
+          // Fall through to return conversational response
+          packingList = [];
+          cleanMessage = aiResponse;
+        }
       }
     }
 
@@ -157,12 +190,9 @@ User's New Message: ${message}`;
       suggestions,
     });
   } catch (error: unknown) {
-    // FIX: Use unknown for catch argument
-    // LOG DETAILED ERROR on the server for debugging
     const errorMessage = (error as Error).message || "Unknown error occurred.";
     console.error("❌ Chat API Fatal Error:", errorMessage, error);
 
-    // Return a generic, safe 500 response to the client
     return NextResponse.json(
       {
         error:
@@ -176,19 +206,15 @@ User's New Message: ${message}`;
   }
 }
 
-// ===============================================
-// generateSuggestions function (FIXED FOR TYPES)
-// ===============================================
 function generateSuggestions(
   userMessage: string,
   aiResponse: string,
   packingList: PackingItem[] | null,
-  existingItems: PackingItem[] | null // FIX: Use PackingItem[] instead of any[]
+  existingItems: PackingItem[] | null
 ): string[] {
   const msg = userMessage.toLowerCase();
   const res = aiResponse.toLowerCase();
 
-  // 1. After list is generated (Highest Priority Suggestions)
   if (packingList && packingList.length > 0) {
     return [
       "Make it a carry-on only list",
@@ -198,7 +224,6 @@ function generateSuggestions(
     ];
   }
 
-  // 2. Identify missing key data points based on AI's response (Mid-Conversation)
   if (res.includes("where are you headed") || res.includes("destination")) {
     return [
       "Paris (City break)",
@@ -208,12 +233,10 @@ function generateSuggestions(
   }
 
   if (res.includes("how long") || res.includes("duration")) {
-    // FIX: Provide concrete duration options
     return ["3 days", "1 week", "2 weeks", "3 months"];
   }
 
   if (res.includes("activities") || res.includes("what will you be doing")) {
-    // FIX: Provide concrete activity options
     return [
       "Business meetings & dinners",
       "Sightseeing & museums",
@@ -227,7 +250,6 @@ function generateSuggestions(
     res.includes("season") ||
     res.includes("temperature")
   ) {
-    // FIX: Provide concrete weather/season options
     return [
       "Warm & sunny (Summer)",
       "Cold & snowy (Winter)",
@@ -236,7 +258,6 @@ function generateSuggestions(
     ];
   }
 
-  // 3. Fallback for general conversation or modification suggestions
   if (existingItems && existingItems.length > 0) {
     if (msg.includes("more") || msg.includes("add")) {
       return [
@@ -250,7 +271,6 @@ function generateSuggestions(
     }
   }
 
-  // 4. Default initial suggestions
   return [
     "Weekend beach trip",
     "Business travel",
