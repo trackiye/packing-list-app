@@ -1,30 +1,222 @@
-/* app/globals.css - Tailwind CSS v4 */
+/* app/globals.css - ELITE WORLD-CLASS VERSION */
 
 @import "tailwindcss";
 
-/* --- CUSTOM ANIMATIONS --- */
-@keyframes animated-gradient {
-  0% {
+/* ============================================ */
+/* DARK GRADIENT BACKGROUND (REVISED FOR SMOOTHNESS & DEPTH) */
+/* ============================================ */
+.dark-gradient {
+  /* This gradient is now extremely long, defining the color zones for sections */
+  background: 
+    /* Zone 1: Hero/Intro - Deep Purple/Blue */
+    linear-gradient(180deg, 
+      #1a1a2e 0%,           /* Start: Dark Black-Blue */
+      #16213e 500px,        /* Transition to Deep Blue */
+      
+      /* Zone 2: List/Results - Indigo/Violet */
+      #0f3460 1000px,       /* Transition into Indigo */
+      #533483 1800px,       /* Transition into Violet */
+      
+      /* Zone 3: Testimonials/FAQ - Pink/Black */
+      #2d1b4e 2400px,       /* Transition into Pinkish-Black */
+      #1a1a2e 3000px        /* End: Dark Black-Blue */
+    );
+  background-attachment: fixed; /* CRITICAL: Fixes background relative to viewport */
+  background-size: 100% 3000px; /* CRITICAL: Sets the total height of the gradient */
+  min-height: 100vh;
+}
+
+/* ============================================ */
+/* ANIMATED MESH GRADIENT WITH TEXTURE */
+/* ============================================ */
+@keyframes mesh-animation {
+  0%, 100% {
     background-position: 0% 50%;
   }
   50% {
     background-position: 100% 50%;
   }
-  100% {
-    background-position: 0% 50%;
-  }
 }
 
-@keyframes pulse-glow {
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -10%); }
+  20% { transform: translate(-15%, 5%); }
+  30% { transform: translate(7%, -25%); }
+  40% { transform: translate(-5%, 25%); }
+  50% { transform: translate(-15%, 10%); }
+  60% { transform: translate(15%, 0%); }
+  70% { transform: translate(0%, 15%); }
+  80% { transform: translate(3%, 35%); }
+  90% { transform: translate(-10%, 10%); }
+}
+
+.mesh-gradient {
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 60% 70%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
+    linear-gradient(135deg, transparent 0%, rgba(139, 92, 246, 0.05) 50%, transparent 100%);
+  background-size: 200% 200%;
+  animation: mesh-animation 20s ease infinite;
+  position: relative;
+}
+
+.mesh-gradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 255, 255, 0.03) 2px, rgba(255, 255, 255, 0.03) 4px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255, 255, 255, 0.03) 2px, rgba(255, 255, 255, 0.03) 4px);
+  opacity: 0.5;
+}
+
+.mesh-gradient::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  animation: grain 8s steps(10) infinite;
+}
+
+/* ============================================ */
+/* ELITE CTA BUTTON WITH SOPHISTICATED GLOW (Restored Primary Glow) */
+/* ============================================ */
+@keyframes elite-cta-pulse {
+  /* This is the primary, stronger pulse for the main button */
   0%, 100% {
-    box-shadow: 0 0 10px rgba(168, 85, 247, 0.2), 0 0 20px rgba(168, 85, 247, 0.1);
+    box-shadow: 
+      0 0 0 0 rgba(139, 92, 246, 0.7),
+      0 10px 40px rgba(139, 92, 246, 0.4),
+      0 0 60px 15px rgba(139, 92, 246, 0.5);
   }
   50% {
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.4), 0 0 30px rgba(168, 85, 247, 0.2);
+    box-shadow: 
+      0 0 0 20px rgba(139, 92, 246, 0),
+      0 15px 50px rgba(236, 72, 153, 0.5),
+      0 0 80px 20px rgba(236, 72, 153, 0.6);
   }
 }
 
-@keyframes fadeInUp {
+@keyframes gradient-rotate {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.elite-cta {
+  animation: elite-cta-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  position: relative;
+}
+
+.elite-cta::before {
+  /* This is the inner, more subtle glow effect used by all CTAs */
+  content: '';
+  position: absolute;
+  inset: -2px; /* Reduced inset for tighter fit */
+  background: linear-gradient(45deg, #8b5cf6, #ec4899, #8b5cf6);
+  background-size: 200% 200%;
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0.3; /* Significantly reduced opacity for subtlety */
+  animation: gradient-rotate 3s ease infinite;
+  filter: blur(4px); /* Reduced blur amount for subtlety */
+}
+
+/* ============================================ */
+/* FLOATING ANIMATION */
+/* ============================================ */
+@keyframes float-animation {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-30px) scale(1.05);
+  }
+}
+
+.float-animation {
+  animation: float-animation 8s ease-in-out infinite;
+}
+
+/* ============================================ */
+/* GLASS MORPHISM - DARK VERSION */
+/* ============================================ */
+.glass-dark {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.glass-strong-dark {
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================ */
+/* GLOW EFFECTS */
+/* ============================================ */
+@keyframes glow-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.6));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(236, 72, 153, 0.8));
+  }
+}
+
+.glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.pulse-glow {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* ============================================ */
+/* SHIMMER EFFECT FOR TEXT */
+/* ============================================ */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 3s linear infinite;
+  background: linear-gradient(
+    to right,
+    #a78bfa 0%,
+    #ec4899 25%,
+    #a78bfa 50%,
+    #ec4899 75%,
+    #a78bfa 100%
+  );
+  background-size: 1000px 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ============================================ */
+/* FADE IN UP ANIMATION */
+/* ============================================ */
+@keyframes fade-in-up {
   from {
     opacity: 0;
     transform: translateY(20px);
@@ -35,7 +227,134 @@
   }
 }
 
-@keyframes shimmer {
+.fade-in-up {
+  animation: fade-in-up 0.6s ease-out;
+}
+
+/* ============================================ */
+/* SMOOTH SCROLLING WITH EASING */
+/* ============================================ */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  * {
+    scroll-margin-top: 120px;
+  }
+}
+
+#results-section {
+  scroll-margin-top: 100px;
+}
+
+/* Scroll reveal animations */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.scroll-reveal {
+  animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.scroll-reveal-delay-1 {
+  animation-delay: 0.1s;
+}
+
+.scroll-reveal-delay-2 {
+  animation-delay: 0.2s;
+}
+
+.scroll-reveal-delay-3 {
+  animation-delay: 0.3s;
+}
+
+/* ============================================ */
+/* CUSTOM SCROLLBAR - DARK THEME */
+/* ============================================ */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(139, 92, 246, 0.7),
+    rgba(236, 72, 153, 0.7)
+  );
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(139, 92, 246, 0.9),
+    rgba(236, 72, 153, 0.9)
+  );
+}
+
+/* ============================================ */
+/* FOCUS STYLES FOR ACCESSIBILITY */
+/* ============================================ */
+*:focus-visible {
+  outline: 3px solid rgba(167, 139, 250, 0.6);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+/* ============================================ */
+/* SELECTION STYLES */
+/* ============================================ */
+::selection {
+  background-color: rgba(139, 92, 246, 0.5);
+  color: white;
+}
+
+/* ============================================ */
+/* HOVER SCALE UTILITIES */
+/* ============================================ */
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+.hover\:scale-105:hover {
+  transform: scale(1.05);
+}
+
+.hover\:scale-110:hover {
+  transform: scale(1.1);
+}
+
+/* ============================================ */
+/* SMOOTH TRANSITIONS */
+/* ============================================ */
+.transition-all {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================ */
+/* LOADING SKELETON */
+/* ============================================ */
+@keyframes skeleton-shimmer {
   0% {
     background-position: -1000px 0;
   }
@@ -44,168 +363,63 @@
   }
 }
 
-@keyframes float-animation {
-  0%, 100% {
-    transform: translateY(0px) translateX(0px);
-  }
-  25% {
-    transform: translateY(-20px) translateX(10px);
-  }
-  50% {
-    transform: translateY(-10px) translateX(-10px);
-  }
-  75% {
-    transform: translateY(-30px) translateX(5px);
-  }
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 1000px 100%;
+  animation: skeleton-shimmer 2s infinite;
 }
 
-@keyframes glow-pulse {
-  0%, 100% {
-    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.5));
-  }
-  50% {
-    filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.8)) drop-shadow(0 0 30px rgba(251, 191, 36, 0.4));
-  }
-}
-
-/* --- NEW: Gradient Text Animation --- */
-@keyframes gradient-x {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-/* --- UTILITY CLASSES --- */
-.animated-gradient {
-  background-size: 400% 400%;
-  animation: animated-gradient 15s ease infinite;
-}
-
-.pulse-glow {
-  animation: pulse-glow 3s infinite ease-in-out;
-}
-
-.fade-in-up {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-.float-animation {
-  animation: float-animation 6s ease-in-out infinite;
-}
-
-.glow-pulse {
-  animation: glow-pulse 2s ease-in-out infinite;
-}
-
-.glass-dark {
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* --- SMOOTH SCROLLING --- */
-html {
-  scroll-behavior: smooth;
-}
-
-/* --- CUSTOM SCROLLBAR --- */
-::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(59, 130, 246, 0.6), rgba(139, 92, 246, 0.6));
-  border-radius: 10px;
-  transition: background 0.3s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(59, 130, 246, 0.9), rgba(139, 92, 246, 0.9));
-}
-
-/* --- FOCUS STYLES FOR ACCESSIBILITY --- */
-*:focus-visible {
-  outline: 3px solid rgba(59, 130, 246, 0.6);
-  outline-offset: 3px;
-  border-radius: 8px;
-}
-
-/* --- PRINT STYLES --- */
+/* ============================================ */
+/* PRINT STYLES */
+/* ============================================ */
 @media print {
   .no-print {
     display: none !important;
   }
-  
+
   body {
     background: white !important;
   }
-  
-  .animated-gradient {
+
+  .dark-gradient {
     background: white !important;
   }
-}
 
-/* --- LOADING SKELETON --- */
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.1) 25%,
-    rgba(255, 255, 255, 0.2) 50%,
-    rgba(255, 255, 255, 0.1) 75%
-  );
-  background-size: 1000px 100%;
-  animation: shimmer 2s infinite;
-}
-
-/* --- GLASS MORPHISM UTILITIES --- */
-.glass {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-}
-
-.glass-strong {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
-}
-
-/* --- SELECTION STYLES --- */
-::selection {
-  background-color: rgba(59, 130, 246, 0.4);
-  color: white;
-}
-
-/* --- TOAST CUSTOMIZATION --- */
-[data-sonner-toast] {
-  backdrop-filter: blur(10px) !important;
-}
-
-/* --- IMPROVED MOBILE TOUCH TARGETS --- */
-@media (max-width: 640px) {
-  button, a {
-    min-height: 44px;
-    min-width: 44px;
+  .glass-dark,
+  .glass-strong,
+  .glass-strong-dark {
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
   }
 }
 
-/* --- SCROLL MARGIN FOR ANCHORS --- */
-.scroll-mt-24 {
-  scroll-margin-top: 6rem;
+/* ============================================ */
+/* MOBILE OPTIMIZATIONS */
+/* ============================================ */
+@media (max-width: 640px) {
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+
+  .glass-dark,
+  .glass-strong,
+  .glass-strong-dark {
+    padding: 16px;
+  }
 }
 
-/* --- REDUCED MOTION --- */
+/* ============================================ */
+/* REDUCED MOTION */
+/* ============================================ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -215,10 +429,202 @@ html {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  
+
   .float-animation,
   .glow-pulse,
-  .animated-gradient {
+  .mesh-gradient,
+  .elite-cta,
+  .animate-shimmer {
     animation: none !important;
   }
+}
+
+/* ============================================ */
+/* BASE STYLES */
+/* ============================================ */
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 26, 26, 46;
+  --background-end-rgb: 22, 33, 62;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  /* Ensure body uses the dark-gradient class in layout.tsx if not applied directly */
+}
+
+/* ============================================ */
+/* UTILITY CLASSES */
+/* ============================================ */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* ============================================ */
+/* ANIMATE-IN UTILITIES */
+/* ============================================ */
+.animate-in {
+  animation-fill-mode: both;
+}
+
+.fade-in {
+  animation: fade-in 0.3s ease-in;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.slide-in-from-top {
+  animation: slide-in-from-top 0.5s ease-out;
+}
+
+@keyframes slide-in-from-top {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-from-top-4 {
+  animation: slide-in-from-top-4 0.5s ease-out;
+}
+
+@keyframes slide-in-from-top-4 {
+  from {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-from-bottom-2 {
+  animation: slide-in-from-bottom-2 0.3s ease-out;
+}
+
+@keyframes slide-in-from-bottom-2 {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-from-bottom-4 {
+  animation: slide-in-from-bottom-4 0.3s ease-out;
+}
+
+@keyframes slide-in-from-bottom-4 {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-from-bottom-8 {
+  animation: slide-in-from-bottom-8 0.5s ease-out;
+}
+
+@keyframes slide-in-from-bottom-8 {
+  from {
+    transform: translateY(32px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-from-left-4 {
+  animation: slide-in-from-left-4 0.3s ease-out;
+}
+
+@keyframes slide-in-from-left-4 {
+  from {
+    transform: translateX(-16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.zoom-in {
+  animation: zoom-in 0.3s ease-out;
+}
+
+@keyframes zoom-in {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ============================================ */
+/* DURATION UTILITIES */
+/* ============================================ */
+.duration-200 {
+  animation-duration: 200ms;
+}
+
+.duration-300 {
+  animation-duration: 300ms;
+}
+
+.duration-500 {
+  animation-duration: 500ms;
+}
+
+.duration-700 {
+  animation-duration: 700ms;
+}
+
+/* ============================================ */
+/* DELAY UTILITIES */
+/* ============================================ */
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+.delay-400 {
+  animation-delay: 400ms;
+}
+
+.delay-500 {
+  animation-delay: 500ms;
 }
