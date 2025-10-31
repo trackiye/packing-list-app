@@ -20,7 +20,6 @@ export async function POST(request: NextRequest) {
       prompt:
         "Respond with a simple, fixed message: 'This API route has been deprecated. Please use /api/chat instead.'",
       temperature: 0,
-      maxTokens: 50,
     });
 
     return NextResponse.json(

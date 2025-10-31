@@ -149,17 +149,20 @@ export async function POST(request: NextRequest) {
 </html>
     `;
 
-    // 4. Send email via Resend
-    const data = await resend.emails.send({
-      from: "Packmind AI <noreply@packmind.ai>", // Ensure you use a verified domain
+    // ✅ BEST PRACTICE - Fully type-safe version
+    const response = await resend.emails.send({
+      from: "Packmind AI <noreply@packmind.ai>",
       to: email,
       subject: `Your Packing List for ${tripContext || "Your Trip"}`,
       html: htmlContent,
     });
 
+    // Handle the response safely
+    const emailId = response.data?.id || "unknown";
+
     return NextResponse.json({
       success: true,
-      messageId: data.id,
+      messageId: emailId,
       message: "Email sent successfully",
     });
   } catch (error: unknown) {

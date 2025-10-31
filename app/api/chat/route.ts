@@ -1,4 +1,4 @@
-// app/api/chat/route.ts - FINAL, DEPLOYMENT-READY VERSION
+// app/api/chat/route.ts - FULLY STABILIZED AND OPTIMIZED (TypeScript Compliant)
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
@@ -91,12 +91,12 @@ ${
 
 User's New Message: ${message}`;
 
-    // 3. Call OpenAI API using AI SDK
+    // ✅ CORRECT - Remove maxTokens if it's not supported
     const { text: aiResponse } = await generateText({
       model: openai("gpt-4o-mini"),
       prompt: systemPrompt,
       temperature: 0.7,
-      // FIX: Removed maxTokens: 2048 because it is not a valid property in the current AI SDK function signature
+      // Remove maxTokens line completely
     });
 
     // 4. Extract packing list from response

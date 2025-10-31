@@ -70,7 +70,7 @@ export default function ListEditor({ items, onItemsChange }: ListEditorProps) {
         });
       }
     }
-  }; // <-- THIS WAS MISSING!
+  };
 
   const handleUpdateItem = (index: number) => {
     const updated = [...items];

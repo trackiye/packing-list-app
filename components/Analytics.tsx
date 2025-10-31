@@ -1,10 +1,9 @@
-// ./components/Analytics.tsx (Type Safety Fixes Applied)
+// ./components/Analytics.tsx (Fixed with Suspense)
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
-// FIX: Use 'unknown' in place of 'any' for type safety
 declare global {
   interface Window {
     gtag?: (
@@ -16,11 +15,11 @@ declare global {
   }
 }
 
-export function Analytics() {
+// Separate the component that uses useSearchParams
+function AnalyticsContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Your Google Analytics ID: G-1YLHGXN1LG
   const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || "G-1YLHGXN1LG";
 
   useEffect(() => {
@@ -56,10 +55,19 @@ export function Analytics() {
   return null;
 }
 
-// Helper functions to track events
+// Wrap with Suspense boundary
+export function Analytics() {
+  return (
+    <Suspense fallback={null}>
+      <AnalyticsContent />
+    </Suspense>
+  );
+}
+
+// Helper functions to track events (unchanged)
 export const trackEvent = (
   eventName: string,
-  eventParams?: Record<string, unknown> // FIX: Use unknown for parameters
+  eventParams?: Record<string, unknown>
 ) => {
   if (typeof window !== "undefined" && window.gtag) {
     window.gtag("event", eventName, eventParams);
