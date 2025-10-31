@@ -595,7 +595,7 @@ export default function PackmindAI() {
         )}
 
         {/* Header - Clean Glass with No Background Color */}
-        <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-transparent border-b border-white/10 shadow-lg animate-in slide-in-from-top duration-500">
+        <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-transparent  animate-in slide-in-from-top duration-500">
           <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg pulse-glow"></div>

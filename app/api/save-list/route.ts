@@ -1,16 +1,35 @@
-// app/api/save-list/route.ts - FINAL, CLEAN, CONSOLIDATED VERSION
+// app/api/save-list/route.ts - FINAL, CLEAN, CONSOLIDATED, AND TYPE-SAFE VERSION
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 
+// 1. Define the interfaces for stored data and request body
+interface PackingItem {
+  item_name: string;
+  description: string;
+  category: string;
+}
+
+interface ListData {
+  id: string;
+  packingList: PackingItem[];
+  tripContext: string | undefined;
+  createdAt: string;
+  views: number;
+}
+
+interface PostBody {
+  packingList: PackingItem[];
+  tripContext: string | undefined;
+}
+
 // In production, this would be a database.
-// For now, we'll use a simple in-memory store for demonstrations/sharing.
-// NOTE: This Map will reset every time the server restarts.
-const savedLists = new Map<string, any>();
+// We use a Map with the defined interface.
+const savedLists = new Map<string, ListData>(); // FIX: Use ListData type
 
 // The POST handler saves the list and generates a unique share ID
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body: PostBody = await request.json();
     const { packingList, tripContext } = body;
 
     if (
@@ -27,11 +46,11 @@ export async function POST(request: NextRequest) {
     // Generate unique ID
     const listId = nanoid(10);
 
-    // Save list data
-    const listData = {
+    // Create list data object
+    const listData: ListData = {
       id: listId,
-      packingList,
-      tripContext,
+      packingList: packingList,
+      tripContext: tripContext,
       createdAt: new Date().toISOString(),
       views: 0,
     };
@@ -50,10 +69,13 @@ export async function POST(request: NextRequest) {
       shareUrl,
       message: "List saved successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    // FIX: Use unknown for catch argument
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred.";
     console.error("Save list error:", error);
     return NextResponse.json(
-      { error: "Failed to save list", details: error.message },
+      { error: "Failed to save list", details: errorMessage },
       { status: 500 }
     );
   }
@@ -79,7 +101,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "List not found" }, { status: 404 });
     }
 
-    // Increment view count
+    // Increment view count and update Map
     listData.views = (listData.views || 0) + 1;
     savedLists.set(listId, listData);
 
@@ -87,10 +109,13 @@ export async function GET(request: NextRequest) {
       success: true,
       data: listData,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    // FIX: Use unknown for catch argument
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred.";
     console.error("Get list error:", error);
     return NextResponse.json(
-      { error: "Failed to retrieve list", details: error.message },
+      { error: "Failed to retrieve list", details: errorMessage },
       { status: 500 }
     );
   }

@@ -1,6 +1,13 @@
-// app/api/email-list/route.ts - FINAL CONSOLIDATED AND FIXED VERSION
+// app/api/email-list/route.ts - FINAL TYPE-SAFE VERSION
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+
+// Define the assumed interface for PackingItem (must match your frontend/chat API structure)
+interface PackingItem {
+  item_name: string;
+  description: string;
+  category: string;
+}
 
 // Initialize Resend using the environment variable
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -8,7 +15,13 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, packingList, tripContext } = body; // tripContext is the subject line data
+    // Assert the type of packingList and tripContext (tripContext is treated as string for subject)
+    const {
+      email,
+      packingList,
+      tripContext,
+    }: { email: string; packingList: PackingItem[]; tripContext: string } =
+      body;
 
     // 1. Basic validation
     if (!email || !email.includes("@")) {
@@ -33,15 +46,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Group items by category for the HTML template
-    const categories = packingList.reduce((acc: any, item: any) => {
-      const category = item.category || "Other";
-      if (!acc[category]) acc[category] = [];
-      acc[category].push(item);
-      return acc;
-    }, {});
+    // 2. Group items by category for the HTML template (Type-safe reducer)
+    const categories: Record<string, PackingItem[]> = packingList.reduce(
+      (acc: Record<string, PackingItem[]>, item: PackingItem) => {
+        const category = item.category || "Other";
+        if (!acc[category]) acc[category] = [];
+        acc[category].push(item);
+        return acc;
+      },
+      {} as Record<string, PackingItem[]>
+    ); // Use assertion for initial empty object
 
-    // 3. Build HTML Email Content (using the aesthetically superior template)
+    // 3. Build HTML Email Content
     const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -78,13 +94,13 @@ export async function POST(request: NextRequest) {
               
               ${Object.entries(categories)
                 .map(
-                  ([category, items]: [string, any]) => `
+                  ([category, items]: [string, PackingItem[]]) => `
                 <div style="margin-bottom: 25px;">
                   <h3 style="color: #9333ea; margin: 0 0 12px 0; font-size: 16px; font-weight: bold; border-bottom: 2px solid #9333ea; padding-bottom: 5px;">${category}</h3>
                   
                   ${items
                     .map(
-                      (item: any) => `
+                      (item: PackingItem) => `
                     <div style="margin-bottom: 12px; padding: 12px; background-color: #f9fafb; border-radius: 6px;">
                       <div style="display: flex; align-items: start;">
                         <div style="width: 16px; height: 16px; border: 2px solid #9333ea; border-radius: 3px; margin-right: 10px; margin-top: 2px;"></div>
@@ -146,10 +162,10 @@ export async function POST(request: NextRequest) {
       messageId: data.id,
       message: "Email sent successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Email sending error:", error);
     return NextResponse.json(
-      { error: "Failed to send email", details: error.message },
+      { error: "Failed to send email", details: (error as Error).message },
       { status: 500 }
     );
   }

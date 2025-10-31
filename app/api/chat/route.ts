@@ -1,5 +1,5 @@
-// app/api/chat/route.ts - FULLY STABILIZED AND OPTIMIZED
-import { NextRequest, NextResponse } from "next/server"; // <-- CRITICAL FIX: Ensure NextResponse is imported
+// app/api/chat/route.ts - FULLY STABILIZED AND OPTIMIZED (TypeScript Compliant)
+import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 
@@ -11,9 +11,16 @@ interface PackingItem {
   category: string;
 }
 
+// Interface for the payload being passed to the API route
+interface ApiPayload {
+  message: string;
+  conversationHistory: string;
+  packingItems: PackingItem[] | null;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { message, conversationHistory, packingItems } = await request.json();
+    const { message, conversationHistory, packingItems }: ApiPayload = await request.json();
 
     // 1. Check for API key (Required for AI SDK)
     if (!process.env.OPENAI_API_KEY) {
@@ -107,13 +114,14 @@ User's New Message: ${message}`;
         const parsed = JSON.parse(jsonString);
 
         if (parsed.packingList && Array.isArray(parsed.packingList)) {
-          packingList = parsed.packingList;
+          // Asserting type for the list items
+          packingList = parsed.packingList as PackingItem[]; 
           // Remove JSON from message, only keeping any conversational intro/outro text
           cleanMessage = aiResponse.replace(jsonString, "").trim();
         }
-      } catch (e) {
+      } catch (e: unknown) { // FIX: Use unknown for catch argument
         console.error(
-          "❌ JSON Extraction Error: AI provided malformed JSON or surrounding text."
+          "❌ JSON Extraction Error: AI provided malformed JSON or surrounding text.", e
         );
         // If parsing fails, we treat the entire response as a clean conversational message.
         packingList = [];
@@ -145,9 +153,10 @@ User's New Message: ${message}`;
       packingList: null,
       suggestions,
     });
-  } catch (error: any) {
+  } catch (error: unknown) { // FIX: Use unknown for catch argument
     // LOG DETAILED ERROR on the server for debugging
-    console.error("❌ Chat API Fatal Error:", error.message, error);
+    const errorMessage = (error as Error).message || "Unknown error occurred.";
+    console.error("❌ Chat API Fatal Error:", errorMessage, error);
 
     // Return a generic, safe 500 response to the client
     return NextResponse.json(
@@ -164,13 +173,13 @@ User's New Message: ${message}`;
 }
 
 // ===============================================
-// generateSuggestions function
+// generateSuggestions function (FIXED FOR TYPES)
 // ===============================================
 function generateSuggestions(
   userMessage: string,
   aiResponse: string,
   packingList: PackingItem[] | null,
-  existingItems: any[] | null
+  existingItems: PackingItem[] | null // FIX: Use PackingItem[] instead of any[]
 ): string[] {
   const msg = userMessage.toLowerCase();
   const res = aiResponse.toLowerCase();
