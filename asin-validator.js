@@ -1,7 +1,8 @@
 // asinValidator.js - Run with: node asinValidator.js
-// Tests all ASINs in your affiliateProducts.ts file
+// NOTE: This file is a local utility and not part of the Next.js build.
 
-const https = require('https');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const https = require("https"); // FIX 1: Disabling fatal rule for require()
 
 // Extract ASINs from your file
 const ASINS_TO_TEST = [
@@ -44,69 +45,90 @@ const ASINS_TO_TEST = [
 ];
 
 // Colors for console output
-const RED = '\x1b[31m';
-const GREEN = '\x1b[32m';
-const YELLOW = '\x1b[33m';
-const RESET = '\x1b[0m';
+const RED = "\x1b[31m";
+const GREEN = "\x1b[32m";
+const YELLOW = "\x1b[33m";
+const RESET = "\x1b[0m";
 
 function testASIN(asin, productName, tier) {
   return new Promise((resolve) => {
     const url = `https://www.amazon.com/dp/${asin}`;
-    
-    https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
-      const status = res.statusCode;
-      
-      if (status === 200) {
-        console.log(`${GREEN}✓ VALID${RESET} | ${tier.padEnd(8)} | ${asin} | ${productName}`);
-        resolve({ asin, status: 'valid', productName, tier });
-      } else if (status === 301 || status === 302) {
-        console.log(`${YELLOW}⚠ REDIRECT${RESET} | ${tier.padEnd(8)} | ${asin} | ${productName}`);
-        resolve({ asin, status: 'redirect', productName, tier });
-      } else {
-        console.log(`${RED}✗ BROKEN${RESET} | ${tier.padEnd(8)} | ${asin} | ${productName} (Status: ${status})`);
-        resolve({ asin, status: 'broken', productName, tier });
-      }
-    }).on('error', (err) => {
-      console.log(`${RED}✗ ERROR${RESET} | ${tier.padEnd(8)} | ${asin} | ${productName}`);
-      resolve({ asin, status: 'error', productName, tier });
-    });
+
+    https
+      .get(url, { headers: { "User-Agent": "Mozilla/5.0" } }, (res) => {
+        const status = res.statusCode;
+
+        if (status === 200) {
+          console.log(
+            `${GREEN}✓ VALID${RESET} | ${tier.padEnd(
+              8
+            )} | ${asin} | ${productName}`
+          );
+          resolve({ asin, status: "valid", productName, tier });
+        } else if (status === 301 || status === 302) {
+          console.log(
+            `${YELLOW}⚠ REDIRECT${RESET} | ${tier.padEnd(
+              8
+            )} | ${asin} | ${productName}`
+          );
+          resolve({ asin, status: "redirect", productName, tier });
+        } else {
+          console.log(
+            `${RED}✗ BROKEN${RESET} | ${tier.padEnd(
+              8
+            )} | ${asin} | ${productName} (Status: ${status})`
+          );
+          resolve({ asin, status: "broken", productName, tier });
+        }
+      })
+      .on("error", (err) => {
+        // FIX 2: The variable 'err' is now used in the console log to clear the warning
+        console.log(
+          `${RED}✗ ERROR${RESET} | ${tier.padEnd(
+            8
+          )} | ${asin} | ${productName} (Details: ${err.message})`
+        );
+        resolve({ asin, status: "error", productName, tier });
+      });
   });
 }
 
 async function validateAllASINs() {
-  console.log('\n🔍 ASIN VALIDATION STARTING...\n');
-  console.log('=' .repeat(80));
-  
+  console.log("\n🔍 ASIN VALIDATION STARTING...\n");
+  console.log("=".repeat(80));
+
   const results = [];
-  
+
   // Test each ASIN with delay to avoid rate limiting
   for (const item of ASINS_TO_TEST) {
     const result = await testASIN(item.asin, item.name, item.tier);
     results.push(result);
-    
+
     // Wait 500ms between requests
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
-  
-  console.log('=' .repeat(80));
-  
+
+  console.log("=".repeat(80));
+
   // Summary
-  const valid = results.filter(r => r.status === 'valid').length;
-  const broken = results.filter(r => r.status === 'broken' || r.status === 'error').length;
-  const redirects = results.filter(r => r.status === 'redirect').length;
-  
+  const valid = results.filter((r) => r.status === "valid").length;
+  const broken = results.filter(
+    (r) => r.status === "broken" || r.status === "error"
+  ).length;
+  const redirects = results.filter((r) => r.status === "redirect").length;
+
   console.log(`\n📊 SUMMARY:`);
   console.log(`${GREEN}✓ Valid: ${valid}${RESET}`);
   console.log(`${YELLOW}⚠ Redirects: ${redirects}${RESET}`);
   console.log(`${RED}✗ Broken: ${broken}${RESET}`);
   console.log(`\nTotal Tested: ${results.length}\n`);
-  
+
   // List broken ASINs
   if (broken > 0) {
     console.log(`${RED}🚨 BROKEN ASINs TO REPLACE:${RESET}`);
     results
-      .filter(r => r.status === 'broken' || r.status === 'error')
-      .forEach(r => {
+      .filter((r) => r.status === "broken" || r.status === "error")
+      .forEach((r) => {
         console.log(`   - ${r.asin} | ${r.tier} | ${r.productName}`);
       });
   }

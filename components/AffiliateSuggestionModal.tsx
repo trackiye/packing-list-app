@@ -1,15 +1,15 @@
 // components/AffiliateSuggestionModal.tsx
 "use client";
 
-import { X, ExternalLink, Shield, TrendingUp, Award } from 'lucide-react';
+import { X, ExternalLink, Shield, TrendingUp, Award } from "lucide-react";
+// NOTE: For true Next.js production quality, this should use 'next/image' instead of <img>
 
 interface ProductOption {
   id: string;
   name: string;
   priceEstimate: string;
   affiliateUrl: string;
-  // FIX: Renamed property from imagePlaceholderUrl to imageUrl to match data/affiliateProducts.ts
-  imageUrl: string; 
+  imageUrl: string;
   valueProposition: string;
 }
 
@@ -36,60 +36,67 @@ export default function AffiliateSuggestionModal({
 
   const handleLinkClick = (url: string, tier: string) => {
     // Track affiliate click
-    if (typeof window !== 'undefined') {
-      const windowWithGtag = window as Window & { gtag?: (...args: unknown[]) => void };
+    if (typeof window !== "undefined") {
+      // FIX: Cleaned up window.gtag access to be type safe
+      const windowWithGtag = window as Window & {
+        gtag?: (
+          command: string,
+          eventName: string,
+          eventParams: Record<string, unknown>
+        ) => void;
+      };
       if (windowWithGtag.gtag) {
-        windowWithGtag.gtag('event', 'affiliate_click', {
-          event_category: 'commerce',
+        windowWithGtag.gtag("event", "affiliate_click", {
+          event_category: "commerce",
           item_name: itemData.itemName,
           tier: tier,
-        });
+        } as Record<string, unknown>); // Assert parameter type
       }
     }
-    window.open(url, '_blank', 'noopener,noreferrer');
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const getTierIcon = (tier: 'budget' | 'midrange' | 'premium') => {
+  const getTierIcon = (tier: "budget" | "midrange" | "premium") => {
     switch (tier) {
-      case 'budget':
+      case "budget":
         return <Shield className="w-5 h-5 text-green-600" />;
-      case 'midrange':
+      case "midrange":
         return <TrendingUp className="w-5 h-5 text-blue-600" />;
-      case 'premium':
+      case "premium":
         return <Award className="w-5 h-5 text-purple-600" />;
     }
   };
 
-  const getTierBadge = (tier: 'budget' | 'midrange' | 'premium') => {
+  const getTierBadge = (tier: "budget" | "midrange" | "premium") => {
     switch (tier) {
-      case 'budget':
-        return 'bg-green-100 text-green-700 border-green-200';
-      case 'midrange':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'premium':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
+      case "budget":
+        return "bg-green-100 text-green-700 border-green-200";
+      case "midrange":
+        return "bg-blue-100 text-blue-700 border-blue-200";
+      case "premium":
+        return "bg-purple-100 text-purple-700 border-purple-200";
     }
   };
 
-  const getTierAccent = (tier: 'budget' | 'midrange' | 'premium') => {
+  const getTierAccent = (tier: "budget" | "midrange" | "premium") => {
     switch (tier) {
-      case 'budget':
-        return 'from-green-500 to-emerald-600';
-      case 'midrange':
-        return 'from-blue-500 to-indigo-600';
-      case 'premium':
-        return 'from-purple-500 to-pink-600';
+      case "budget":
+        return "from-green-500 to-emerald-600";
+      case "midrange":
+        return "from-blue-500 to-indigo-600";
+      case "premium":
+        return "from-purple-500 to-pink-600";
     }
   };
 
   const renderProductCard = (
     option: ProductOption,
-    tier: 'budget' | 'midrange' | 'premium',
+    tier: "budget" | "midrange" | "premium",
     featured: boolean = false
   ) => (
     <div
       className={`relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 ${
-        featured ? 'ring-2 ring-blue-500 scale-105 z-10' : 'hover:scale-105'
+        featured ? "ring-2 ring-blue-500 scale-105 z-10" : "hover:scale-105"
       }`}
     >
       {/* Featured Badge */}
@@ -115,8 +122,9 @@ export default function AffiliateSuggestionModal({
 
         {/* Product Image */}
         <div className="flex justify-center mb-4">
+          {/* FIX: Disable Next.js optimization warning for this <img> element */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            // FIX APPLIED HERE: Now using 'imageUrl' instead of 'imagePlaceholderUrl'
             src={option.imageUrl}
             alt={option.name}
             className="w-32 h-32 object-contain rounded-lg shadow-sm"
@@ -211,9 +219,9 @@ export default function AffiliateSuggestionModal({
           <div className="p-6 lg:p-8">
             {/* Products Grid */}
             <div className="grid md:grid-cols-3 gap-6 mb-8">
-              {renderProductCard(itemData.budgetOption, 'budget')}
-              {renderProductCard(itemData.midRangeOption, 'midrange', true)}
-              {renderProductCard(itemData.premiumOption, 'premium')}
+              {renderProductCard(itemData.budgetOption, "budget")}
+              {renderProductCard(itemData.midRangeOption, "midrange", true)}
+              {renderProductCard(itemData.premiumOption, "premium")}
             </div>
 
             {/* Why Choose Section */}
@@ -261,8 +269,8 @@ export default function AffiliateSuggestionModal({
             {/* Affiliate Disclosure */}
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
               <p className="text-xs text-gray-600 text-center leading-relaxed">
-                <strong className="text-gray-800">Transparency Notice:</strong> We
-                may earn a small commission from purchases made through these
+                <strong className="text-gray-800">Transparency Notice:</strong>{" "}
+                We may earn a small commission from purchases made through these
                 links at no extra cost to you. This helps us keep Packmind free
                 and improve our recommendations. Thank you for your support! 🙏
               </p>

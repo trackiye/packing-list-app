@@ -3,7 +3,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Analytics from "@/components/Analytics"; // <--- NEW IMPORT
+// import Analytics from "@/components/Analytics"; // <--- FIX: REMOVED UNUSED IMPORT
 import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });

@@ -1,9 +1,24 @@
-// app/api/generate-pdf/route.ts - SIMPLE HTML EXPORT (Browser will print as PDF)
+// app/api/genarate-pdf/route.ts - FINAL TYPE-SAFE PDF EXPORT
 import { NextRequest, NextResponse } from "next/server";
+
+// Interface must be defined or imported to avoid 'any'
+interface PackingItem {
+  item_name: string;
+  description: string;
+  category: string;
+}
+
+// Interface for the incoming POST request body
+interface PdfRequestBody {
+  items: PackingItem[];
+  userName: string;
+  tripDetails: string;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { items, userName, tripDetails } = await request.json();
+    const { items, userName, tripDetails }: PdfRequestBody =
+      await request.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -12,8 +27,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Group items by category
-    const categorized: Record<string, any[]> = {};
+    // Group items by category (Type-safe reducer)
+    const categorized: Record<string, PackingItem[]> = {};
     items.forEach((item) => {
       const cat = item.category || "Miscellaneous";
       if (!categorized[cat]) categorized[cat] = [];
@@ -284,7 +299,7 @@ export async function POST(request: NextRequest) {
 
     ${Object.entries(categorized)
       .map(
-        ([category, categoryItems]) => `
+        ([category, categoryItems]: [string, PackingItem[]]) => `
       <div class="category">
         <div class="category-header">
           <span class="category-icon">${getCategoryIcon(category)}</span>
@@ -296,7 +311,7 @@ export async function POST(request: NextRequest) {
         <ul class="items-list">
           ${categoryItems
             .map(
-              (item) => `
+              (item: PackingItem) => `
             <li class="item" onclick="this.classList.toggle('checked'); updateStats();">
               <div class="checkbox"></div>
               <div class="item-content">
@@ -351,8 +366,11 @@ export async function POST(request: NextRequest) {
         }-${Date.now()}.html"`,
       },
     });
-  } catch (error) {
-    console.error("❌ PDF Generation Error:", error);
+  } catch (error: unknown) {
+    // FIX: Use unknown for type safety
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred.";
+    console.error("❌ PDF Generation Error:", errorMessage, error);
     return NextResponse.json(
       { error: "Failed to generate PDF" },
       { status: 500 }

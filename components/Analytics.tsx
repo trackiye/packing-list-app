@@ -1,16 +1,18 @@
+// ./components/Analytics.tsx (Type Safety Fixes Applied)
 "use client";
 
 import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
+// FIX: Use 'unknown' in place of 'any' for type safety
 declare global {
   interface Window {
     gtag?: (
       command: string,
       targetId: string,
-      config?: Record<string, any>
+      config?: Record<string, unknown>
     ) => void;
-    dataLayer?: any[];
+    dataLayer?: unknown[];
   }
 }
 
@@ -57,7 +59,7 @@ export function Analytics() {
 // Helper functions to track events
 export const trackEvent = (
   eventName: string,
-  eventParams?: Record<string, any>
+  eventParams?: Record<string, unknown> // FIX: Use unknown for parameters
 ) => {
   if (typeof window !== "undefined" && window.gtag) {
     window.gtag("event", eventName, eventParams);

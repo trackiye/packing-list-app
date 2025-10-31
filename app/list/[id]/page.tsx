@@ -1,3 +1,5 @@
+// app/list/[id]/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -32,7 +34,8 @@ export default function SharedListPage() {
           data.items.map((item: PackingItem) => ({ ...item, checked: false }))
         );
         setTripDetails(data.tripDetails);
-      } catch (err) {
+      } catch (__err) {
+        // FIX: Using double underscore to guarantee variable is ignored
         setError("This list has expired or doesn't exist");
       } finally {
         setLoading(false);

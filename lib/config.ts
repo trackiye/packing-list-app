@@ -121,14 +121,18 @@ export const SITE_CONFIG: SiteConfig = {
 };
 
 // Helper function to get site config by domain (for future multi-tenant support)
-export function getSiteConfig(domain?: string): SiteConfig {
+export function getSiteConfig(_domain?: string): SiteConfig {
+  // FIX: ensures '_domain' is ignored
   // For now, return default Packmind config
   // Future: Look up config based on domain
   return SITE_CONFIG;
 }
 
 // Helper to build conversation context for API
-export function buildConversationContext(answers: Record<string, any>): string {
+export function buildConversationContext(
+  answers: Record<string, unknown>
+): string {
+  // FIX: Use Record<string, unknown> for type safety
   const parts: string[] = [];
 
   if (answers["trip-details"]) {
@@ -139,7 +143,12 @@ export function buildConversationContext(answers: Record<string, any>): string {
     parts.push(`Accommodation: ${answers["accommodation"]}`);
   }
 
-  if (answers["activities"] && answers["activities"].length > 0) {
+  // FIX: Check for array type safely
+  if (
+    answers["activities"] &&
+    Array.isArray(answers["activities"]) &&
+    answers["activities"].length > 0
+  ) {
     parts.push(`Activities: ${answers["activities"].join(", ")}`);
   }
 
