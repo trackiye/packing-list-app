@@ -1,104 +1,115 @@
 "use client";
-
-import { Sparkles, Settings, Menu, X } from "lucide-react";
+import { Sparkles, Menu, X } from "lucide-react";
+import { signIn, signOut, useSession } from "next-auth/react";
+import { useState } from "react";
 import Link from "next/link";
-import { useSession, signIn, signOut } from "next-auth/react";
-import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
 
 export default function Header() {
   const { data: session } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const pathname = usePathname();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 100);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const isHomepage = pathname === "/";
 
   return (
-    <header 
-      className={`fixed top-0 left-0 right-0 header-layered transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-black/40 backdrop-blur-xl border-b border-white/20 shadow-2xl' 
-          : 'bg-white/5 backdrop-blur-lg border-b border-white/10'
-      }`}
-    >
-      <div className="container-custom px-4 header-compact flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 hover:scale-105 transition-transform">
-          <Sparkles className="w-5 h-5 text-white" />
-          <span className="text-lg font-bold text-white">PackMind AI</span>
-        </Link>
-
-        <nav className="hidden md:flex items-center gap-4">
-          <Link href="/pricing" className="text-white/80 hover:text-white text-sm transition-colors hover-lift">
-            Pricing
+    <header className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-lg border-b border-white/10">
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="p-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg group-hover:scale-110 transition-transform">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold text-white">PackMind</span>
           </Link>
-          {session ? (
-            <>
-              <Link href="/dashboard" className="text-white/80 hover:text-white text-sm transition-colors">
-                Dashboard
-              </Link>
-              <button onClick={() => signOut()} className="text-white/80 hover:text-white text-sm transition-colors">
-                Sign Out
-              </button>
-            </>
-          ) : (
-            <>
-              <Link href="/login" className="text-white/80 hover:text-white text-sm transition-colors">
-                Log In
-              </Link>
-              <button onClick={() => signIn("google")} className="btn-primary py-2 px-4 text-xs">
-                Sign Up Free
-              </button>
-            </>
-          )}
-        </nav>
 
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 hover:bg-white/10 rounded-lg transition-all"
-        >
-          {mobileMenuOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
-        </button>
-      </div>
-
-      {mobileMenuOpen && (
-        <div className={`md:hidden border-t border-white/10 animate-fadeIn ${
-          isScrolled ? 'bg-black/40 backdrop-blur-xl' : 'bg-white/5 backdrop-blur-lg'
-        }`}>
-          <nav className="container-custom px-4 py-4 space-y-3">
-            <Link href="/pricing" onClick={() => setMobileMenuOpen(false)} className="block text-white/80 hover:text-white text-sm py-2">
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-8">
+            <Link href="/#features" className="text-white/80 hover:text-white transition-colors">
+              Features
+            </Link>
+            <Link href="/pricing" className="text-white/80 hover:text-white transition-colors">
               Pricing
             </Link>
+            
             {session ? (
               <>
-                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="block text-white/80 hover:text-white text-sm py-2">
+                <Link href="/dashboard" className="text-white/80 hover:text-white transition-colors">
                   Dashboard
                 </Link>
-                <button onClick={() => { signOut(); setMobileMenuOpen(false); }} className="w-full text-left text-white/80 hover:text-white text-sm py-2">
+                <button
+                  onClick={() => signOut()}
+                  className="px-4 py-2 text-white/80 hover:text-white transition-colors"
+                >
                   Sign Out
                 </button>
               </>
             ) : (
+              <button
+                onClick={() => signIn("google")}
+                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full font-semibold hover:shadow-lg hover:scale-105 transition-all"
+              >
+                Get Started
+              </button>
+            )}
+          </div>
+
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 text-white"
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+
+        {/* Mobile Navigation */}
+        {mobileMenuOpen && (
+          <div className="md:hidden py-4 space-y-4">
+            <Link
+              href="/#features"
+              className="block text-white/80 hover:text-white transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Features
+            </Link>
+            <Link
+              href="/pricing"
+              className="block text-white/80 hover:text-white transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Pricing
+            </Link>
+            {session ? (
               <>
-                <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block text-white/80 hover:text-white text-sm py-2">
-                  Log In
+                <Link
+                  href="/dashboard"
+                  className="block text-white/80 hover:text-white transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Dashboard
                 </Link>
-                <button onClick={() => { signIn("google"); setMobileMenuOpen(false); }} className="w-full btn-primary py-2 text-sm">
-                  Sign Up Free
+                <button
+                  onClick={() => {
+                    signOut();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="block w-full text-left text-white/80 hover:text-white transition-colors"
+                >
+                  Sign Out
                 </button>
               </>
+            ) : (
+              <button
+                onClick={() => {
+                  signIn("google");
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full font-semibold"
+              >
+                Get Started
+              </button>
             )}
-          </nav>
-        </div>
-      )}
+          </div>
+        )}
+      </nav>
     </header>
   );
 }
