@@ -1,0 +1,1174 @@
+// app/page.tsx - FINAL PRODUCTION ORCHESTRATION LAYER (WITH NEGATIVE COPY)
+"use client";
+
+import dynamic from "next/dynamic";
+import React, { useEffect, useRef, useCallback, useMemo } from "react";
+import toast, { Toaster } from "react-hot-toast";
+import Link from "next/link";
+import {
+  FileText,
+  Star,
+  Zap,
+  MapPin,
+  Shirt,
+  Zap as Bolt,
+  ShoppingBag,
+  Waves,
+  TrendingUp,
+  MessageSquare,
+  CheckCircle2,
+  Sparkles,
+  Loader2,
+  X,
+  Trash2, // Added back for use in handleDelete/header (even if passed as prop, it's used in rendering decisions)
+  Share2, // Added back for use in handleShare/header
+  Mail, // Added back for use in header
+  Download, // Added back for use in header
+} from "lucide-react";
+
+import {
+  chatMessageSchema,
+  safeValidate,
+  emailSchema,
+  nameSchema,
+} from "@/lib/validations";
+import { useAppStore } from "@/lib/store";
+import { getABVariant } from "@/lib/abTest";
+import {
+  trackListGeneration,
+  trackPDFDownload,
+  trackEmailCapture,
+  trackShareClick,
+  trackAffiliateClick,
+  trackSignupModalView,
+  trackProModalView,
+  trackConversionModalDismiss,
+  trackPDFPaywallHit,
+  trackFeatureUsage,
+  trackRateLimitHit,
+  trackExitIntent,
+  trackFunnelStep,
+  Analytics,
+} from "@/components/Analytics";
+
+// Component Imports
+import ChatInterface from "@/components/Conversation/ChatInterface";
+import PackingListView from "@/components/PackingList/PackingListView";
+import TestimonialsFAQ from "@/components/TestimonialsFAQ";
+import EmailListModal from "@/components/Modals/EmailListModal";
+
+const ProUpgradeModal = dynamic(
+  () =>
+    import("@/components/ConversionModals").then((mod) => ({
+      default: mod.ProUpgradeModal,
+    })),
+  { ssr: false }
+);
+const AffiliateSuggestionModal = dynamic(
+  () => import("@/components/AffiliateSuggestionModal"),
+  { ssr: false }
+);
+const PDFModal = dynamic(() => import("@/components/Modals/PDFModal"), {
+  ssr: false,
+});
+const ShareModal = dynamic(() => import("@/components/Modals/ShareModal"), {
+  ssr: false,
+});
+const FooterEmailModal = dynamic(
+  () => import("@/components/Modals/FooterEmailModal"),
+  { ssr: false }
+);
+
+import {
+  getProductSuggestions,
+  PackingItemData,
+  ASSOCIATE_ID,
+} from "@/data/affiliateProducts";
+
+// Type definitions (only interfaces needed for page.tsx logic)
+interface PackingItem {
+  item_name: string;
+  description: string;
+  category: string;
+  checked?: boolean;
+}
+
+interface ConversationMessage {
+  role: "user" | "assistant";
+  content: string;
+  suggestions?: string[];
+}
+
+export default function PackmindAI() {
+
+  // ZUSTAND STORE
+  const {
+    packingItems,
+    setPackingItems,
+    toggleItemChecked,
+    groupByCategory,
+    setGroupByCategory,
+    expandedCategories,
+    toggleCategory,
+    conversationMode,
+    setConversationMode,
+    messages,
+    addMessage,
+    clearMessages,
+    isTyping,
+    setIsTyping,
+    isGenerating,
+    setIsGenerating,
+    userInput,
+    setUserInput,
+    modals,
+    setModal,
+    setSignUpModalTrigger,
+    listsCreatedCount,
+    incrementListsCreated,
+    timeSavedMinutes,
+    addTimeSaved,
+    remainingLists,
+    setRemainingLists,
+    showRemainingBanner,
+    setShowRemainingBanner,
+    emailCaptured,
+    setEmailCaptured,
+    shareLink,
+    setShareLink,
+    resetList,
+  } = useAppStore();
+
+  // Local UI state (not persisted)
+  const [showSkeleton, setShowSkeleton] = React.useState(false);
+  const [liveCounter, setLiveCounter] = React.useState(0);
+  const [selectedItemData, setSelectedItemData] =
+    React.useState<PackingItemData | null>(null);
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = React.useState<
+    string[]
+  >([]);
+  const [showAutocomplete, setShowAutocomplete] = React.useState(false);
+  const [scrollY, setScrollY] = React.useState(0);
+  const [isMobile, setIsMobile] = React.useState(false);
+  const [userName, setUserName] = React.useState("");
+  const [userEmail, setUserEmail] = React.useState("");
+  const [pdfGenerating, setPdfGenerating] = React.useState(false);
+  const [emailSending, setEmailSending] = React.useState(false);
+
+  // PHASE 4.1: A/B Test Assignment (Executed only once on client load)
+  const signupModalVariant = getABVariant("signup_modal_copy");
+
+  // Refs
+  const resultsRef = useRef<HTMLDivElement | null>(null);
+
+  // --- LIFECYCLE & STATE MANAGEMENT ---
+
+  // Fetch real live counter (RESILIENT VERSION)
+  useEffect(() => {
+    const fetchLiveCounter = async () => {
+      try {
+        const response = await fetch("/api/stats");
+        if (response.ok) {
+          const data = await response.json();
+          setLiveCounter(data.usersToday || 12487);
+        } else {
+          setLiveCounter(12487);
+          console.error("API stats failed with status:", response.status);
+        }
+      } catch (error) {
+        console.error(
+          "Failed to fetch live counter due to network error:",
+          error
+        );
+        setLiveCounter(12487);
+      }
+    };
+    fetchLiveCounter();
+    const interval = setInterval(fetchLiveCounter, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Mobile/Parallax detection
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    // Parallax logic (Desktop Only)
+    if (!isMobile) {
+      let ticking = false;
+      const handleScroll = () => {
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            setScrollY(window.scrollY);
+            ticking = false;
+          });
+          ticking = true;
+        }
+      };
+      window.addEventListener("scroll", handleScroll, { passive: true });
+      return () => window.removeEventListener("scroll", handleScroll);
+    }
+    return () => window.removeEventListener("resize", checkMobile);
+  }, [isMobile]);
+
+  // ADDED: Exit intent detection with conversion toast
+  useEffect(() => {
+
+    let isShowingCustomPrompt = false;
+
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY < 50 && !isShowingCustomPrompt) {
+        const hasUnsavedChanges = packingItems.some((item) => item.checked);
+
+        if (hasUnsavedChanges) {
+          isShowingCustomPrompt = true;
+          toast.custom(
+            (t) => (
+              <div className="bg-white p-4 rounded-xl shadow-2xl flex items-center justify-between gap-4 border-2 border-pink-500 animate-slide-up">
+                <div className="flex items-center gap-3">
+                  <Zap className="w-5 h-5 text-pink-500 animate-pulse" />
+                  <p className="font-bold text-gray-900">
+                    Don&apos;t lose your {packingItems.length} items!
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    trackExitIntent(true); // Track the successful capture of exit intent
+                  }}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold hover:scale-105 transition-transform"
+                >
+                  Sign In to Save
+                </button>
+              </div>
+            ),
+            {
+              duration: 8000,
+              position: "top-center",
+            }
+          );
+
+          setTimeout(() => (isShowingCustomPrompt = false), 9000);
+        }
+      }
+    };
+
+    document.addEventListener("mouseleave", handleMouseLeave);
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const hasUnsavedChanges = packingItems.some((item) => item.checked);
+      if (hasUnsavedChanges && true) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener("mouseleave", handleMouseLeave);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+
+  // Conversion triggers based on engagement
+  useEffect(() => {
+
+    const checkedCount = packingItems.filter((i) => i.checked).length;
+    const progress = (checkedCount / packingItems.length) * 100;
+
+    // Soft prompt toast at 50% completion
+    if (progress >= 50 && progress < 75 && !modals.showSignUpModal) {
+      const timeoutId = setTimeout(() => {
+        toast(
+          (t) => (
+            <div className="flex flex-col gap-2">
+              <p className="font-semibold">You&apos;re halfway there! 🎉</p>
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  setModal("showSignUpModal", true);
+                  setSignUpModalTrigger("soft");
+                  trackSignupModalView("soft", listsCreatedCount);
+                }}
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-700"
+              >
+                Sign in to save progress
+              </button>
+            </div>
+          ),
+          { duration: 8000 }
+        );
+        return () => clearTimeout(timeoutId);
+      }, 2000);
+      return () => {};
+    }
+  }, [
+    packingItems,
+    modals.showSignUpModal,
+    listsCreatedCount,
+    setModal,
+    setSignUpModalTrigger,
+  ]);
+
+  // ADDED: Smart autocomplete logic
+  useEffect(() => {
+    const AUTOCOMPLETE_SUGGESTIONS = {
+      destination: [
+        "Paris, France for",
+        "Tokyo, Japan for",
+        "New York City for",
+        "Bali, Indonesia for",
+      ],
+      duration: ["3 days", "a weekend", "one week", "two weeks"],
+      activity: [
+        "business meetings",
+        "beach activities",
+        "hiking and camping",
+        "city sightseeing",
+      ],
+      weather: [
+        "warm and sunny weather",
+        "cold and snowy conditions",
+        "rainy season",
+      ],
+    };
+
+    if (!userInput.trim()) {
+      setShowAutocomplete(false);
+      return;
+    }
+    const input = userInput.toLowerCase();
+    let suggestions: string[] = [];
+
+    if (input.includes("going to") || input.includes("traveling to")) {
+      suggestions = AUTOCOMPLETE_SUGGESTIONS.destination;
+    } else if (input.includes("for") && input.split(" ").length < 5) {
+      suggestions = AUTOCOMPLETE_SUGGESTIONS.duration;
+    } else if (input.includes("doing") || input.includes("activities")) {
+      suggestions = AUTOCOMPLETE_SUGGESTIONS.activity;
+    } else if (input.includes("weather") || input.includes("climate")) {
+      suggestions = AUTOCOMPLETE_SUGGESTIONS.weather;
+    } else if (input.split(" ").length <= 2) {
+      suggestions = AUTOCOMPLETE_SUGGESTIONS.destination;
+    }
+
+    const filtered = suggestions
+      .filter((s) => !input.includes(s.toLowerCase()))
+      .slice(0, 3);
+
+    setAutocompleteSuggestions(filtered);
+    setShowAutocomplete(filtered.length > 0);
+  }, [userInput]);
+
+  // --- HANDLERS (PASSED TO CHILD COMPONENTS) ---
+
+  const handleStartConversation = useCallback(() => {
+    setConversationMode(true);
+    setIsTyping(false);
+    const initialMessage: ConversationMessage = {
+      role: "assistant",
+      content:
+        "Where are you headed? I need a destination to begin crafting your elite list.",
+      suggestions: [
+        "Beach vacation in Bali",
+        "Business trip to NYC",
+        "Backpacking Europe",
+        "Weekend camping trip",
+      ],
+    };
+    addMessage(initialMessage);
+    trackFunnelStep("conversation_started", 1);
+  }, [setConversationMode, setIsTyping, addMessage]);
+
+  // The central API call logic (Cleaned up, passed to ChatInterface)
+  const handleSendMessage = useCallback(
+    async (messageText?: string) => {
+      const textToSend = messageText || userInput.trim();
+
+      // ADDED: Validate input (Conversion/Security optimization)
+      const validation = safeValidate(chatMessageSchema, textToSend);
+      if (!validation.success) {
+        toast.error(validation.error);
+        return;
+      }
+
+      if (isTyping) return;
+
+      setShowAutocomplete(false);
+
+      const userMessage: ConversationMessage = {
+        role: "user",
+        content: textToSend,
+      };
+      addMessage(userMessage);
+      setUserInput("");
+      setIsTyping(true);
+
+      trackFunnelStep("message_sent", 2, { message_length: textToSend.length });
+
+      const history = messages
+        .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+        .join("\n");
+      const fullContext = `${history}\nUser: ${textToSend}`;
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: textToSend,
+            conversationHistory: fullContext,
+            packingItems: packingItems,
+          }),
+        });
+
+        const data = await response.json();
+
+        // ADDED: Rate Limit Handling (Conversion flow)
+        if (response.status === 403 && data.limitReached) {
+          trackRateLimitHit("anonymous", 3);
+          setSignUpModalTrigger("hard");
+          setModal("showSignUpModal", true);
+          trackSignupModalView("hard", 3);
+
+          const errorMessage: ConversationMessage = {
+            role: "assistant",
+            content: data.message,
+            suggestions: data.suggestions || [],
+          };
+          addMessage(errorMessage);
+          setIsTyping(false);
+          toast.error("Free limit reached. Sign in to continue!");
+          return;
+        }
+
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+        // Update Remaining Lists (UX/Conversion)
+        if (typeof data.remainingLists === "number") {
+          setRemainingLists(data.remainingLists);
+          if (!data.isAuthenticated && data.remainingLists <= 1) {
+            setShowRemainingBanner(true);
+          }
+        }
+
+        const aiMessage: ConversationMessage = {
+          role: "assistant",
+          content: data.message,
+          suggestions: data.suggestions || [],
+        };
+        addMessage(aiMessage);
+
+        // ADDED: Conversion triggers
+        if (
+          data.conversionTrigger === "signup_prompt_soft" &&
+          data.remainingLists === 1
+        ) {
+          setTimeout(() => {
+            setSignUpModalTrigger("soft");
+            setModal("showSignUpModal", true);
+            trackSignupModalView("soft", 2);
+          }, 2000);
+        }
+
+        if (
+          data.conversionTrigger === "pro_upgrade_prompt" &&
+          data.isAuthenticated
+        ) {
+          setTimeout(() => {
+            setModal("showProModal", true);
+            trackProModalView(listsCreatedCount, timeSavedMinutes);
+          }, 3000);
+        }
+
+        // Process final list
+        if (data.packingList && data.packingList.length > 0) {
+          setIsGenerating(true);
+          setTimeout(() => setConversationMode(false), 300);
+          setTimeout(() => setShowSkeleton(true), 400);
+          setTimeout(() => {
+            const itemsWithChecked = data.packingList.map(
+              (item: PackingItem) => ({ ...item, checked: false })
+            );
+            setPackingItems(itemsWithChecked);
+            setShowSkeleton(false);
+            setIsGenerating(false);
+            incrementListsCreated();
+            addTimeSaved(12); // Estimated time saved: 12 minutes
+            trackListGeneration(textToSend, data.packingList.length);
+            trackFunnelStep("list_generated", 3, {
+              item_count: data.packingList.length,
+            });
+            toast.success("✨ Your packing list is ready!");
+            setTimeout(
+              () =>
+                resultsRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                }),
+              150
+            );
+          }, 1200);
+        }
+      } catch (error) {
+        console.error("Chat error:", error);
+        const errorMessage: ConversationMessage = {
+          role: "assistant",
+          content: "Hmm, something went wrong. Let's try that again!",
+          suggestions: ["Restart conversation"],
+        };
+        addMessage(errorMessage);
+        toast.error("Connection error. Please try again.");
+      } finally {
+        setIsTyping(false);
+      }
+    },
+    [
+      userInput,
+      isTyping,
+      messages,
+      packingItems,
+      listsCreatedCount,
+      timeSavedMinutes,
+      addMessage,
+      setUserInput,
+      setIsTyping,
+      setPackingItems,
+      setRemainingLists,
+      setShowRemainingBanner,
+      setSignUpModalTrigger,
+      setModal,
+      incrementListsCreated,
+      addTimeSaved,
+      setIsGenerating,
+      setConversationMode,
+    ]
+  );
+
+  const handleDownloadPDF = useCallback(() => {
+    if (true) {
+      trackPDFPaywallHit("free");
+      setSignUpModalTrigger("hard");
+      setModal("showSignUpModal", true);
+      trackSignupModalView("hard", listsCreatedCount);
+      return;
+    }
+
+    const isProUser = false; // TODO: Check Stripe
+    if (!isProUser) {
+      trackPDFPaywallHit("signed_in");
+      setModal("showProModal", true);
+      trackProModalView(listsCreatedCount, timeSavedMinutes);
+      return;
+    }
+
+    trackFeatureUsage("pdf", listsCreatedCount);
+    setModal("showPDFModal", true);
+  }, [
+    listsCreatedCount,
+    timeSavedMinutes,
+    setSignUpModalTrigger,
+    setModal,
+  ]);
+
+  const handleConfirmPDF = useCallback(async () => {
+    const nameValidation = safeValidate(nameSchema, userName);
+    if (!nameValidation.success) {
+      toast.error(nameValidation.error);
+      return;
+    }
+
+    if (!packingItems) {
+      toast.error("No packing list to export");
+      return;
+    }
+
+    setPdfGenerating(true);
+    const toastId = toast.loading("Generating your PDF...");
+
+    try {
+      const response = await fetch("/api/generate-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: packingItems,
+          userName: nameValidation.data,
+          tripDetails: "Your personalized packing list",
+        }),
+      });
+
+      if (!response.ok) throw new Error("PDF generation failed");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `PackMind-${userName}-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      trackPDFDownload(packingItems.length);
+      toast.success("✅ PDF downloaded!", { id: toastId });
+      setModal("showPDFModal", false);
+      setUserName("");
+    } catch (error) {
+      console.error("PDF Error:", error);
+      toast.error("Failed to generate PDF. Please try again.", { id: toastId });
+    } finally {
+      setPdfGenerating(false);
+    }
+  }, [userName, packingItems, setModal]);
+
+  const handleConfirmEmail = useCallback(async () => {
+    const nameValidation = safeValidate(nameSchema, userName);
+    const emailValidation = safeValidate(emailSchema, userEmail);
+    if (!nameValidation.success) {
+      toast.error(nameValidation.error);
+      return;
+    }
+    if (!emailValidation.success) {
+      toast.error(emailValidation.error);
+      return;
+    }
+    if (!packingItems) {
+      toast.error("No packing list to send");
+      return;
+    }
+
+    setEmailSending(true);
+    const toastId = toast.loading("Sending your list...");
+
+    try {
+      const saveResponse = await fetch("/api/save-list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packingList: packingItems, tripContext: {} }),
+      });
+      const saveResult = await saveResponse.json();
+      if (!saveResponse.ok) throw new Error(saveResult.error);
+
+      const listUrl = `${
+        process.env.NEXT_PUBLIC_BASE_URL || window.location.origin
+      }/list/${saveResult.listId}`;
+
+      const emailResponse = await fetch("/api/email-list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: emailValidation.data,
+          name: nameValidation.data,
+          listUrl,
+        }),
+      });
+
+      if (!emailResponse.ok) throw new Error("Email failed");
+
+      trackEmailCapture(emailValidation.data);
+      toast.success("✅ Packing list sent to your email!", { id: toastId });
+      setEmailCaptured(true);
+      setModal("showEmailListModal", false);
+      setUserEmail("");
+      setUserName("");
+    } catch (error) {
+      console.error("Email error:", error);
+      toast.error("Failed to send email. Please try again.", { id: toastId });
+    } finally {
+      setEmailSending(false);
+    }
+  }, [userName, userEmail, packingItems, setEmailCaptured, setModal]);
+
+  const handleShare = useCallback(async () => {
+    if (!packingItems) {
+      toast.error("Please generate a list first");
+      return;
+    }
+    const toastId = toast.loading("Generating share link...");
+
+    try {
+      const response = await fetch("/api/save-list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packingList: packingItems, tripContext: {} }),
+      });
+
+      if (!response.ok) throw new Error("Failed to generate share link");
+      const { listId } = await response.json();
+
+      const shareUrl = `${
+        process.env.NEXT_PUBLIC_BASE_URL || window.location.origin
+      }/list/${listId}`;
+      setShareLink(shareUrl);
+      setModal("showShareModal", true);
+      navigator.clipboard.writeText(shareUrl);
+      trackShareClick("generated");
+      toast.success("✅ Share link copied!", { id: toastId });
+    } catch (error) {
+      console.error("Share error:", error);
+      toast.error("Failed to generate share link", { id: toastId });
+    }
+  }, [packingItems, setShareLink, setModal]);
+
+  const handleShopClick = useCallback(
+    (item: PackingItem) => {
+      const suggestions = getProductSuggestions(item.item_name);
+
+      if (suggestions) {
+        setSelectedItemData(suggestions);
+        setModal("showAffiliateModal", true);
+      } else {
+        const searchUrl = `https://www.amazon.com/s?k=${encodeURIComponent(
+          item.item_name
+        )}&tag=${ASSOCIATE_ID}`;
+        window.open(searchUrl, "_blank", "noopener,noreferrer");
+      }
+    },
+    [setModal]
+  );
+
+  const handleDelete = useCallback(() => {
+    resetList();
+    clearMessages();
+  }, [resetList, clearMessages]);
+
+  // --- MEMOIZED CALCULATIONS ---
+  const getProgress = useMemo(() => {
+    if (!packingItems) return 0;
+    const checked = packingItems.filter((item) => item.checked).length;
+    return Math.round((checked / packingItems.length) * 100);
+  }, [packingItems]);
+
+  const getGroupedItems = useMemo(() => {
+    if (!packingItems) return {};
+    const grouped: Record<string, PackingItem[]> = {};
+    packingItems.forEach((item) => {
+      if (!grouped[item.category]) grouped[item.category] = [];
+      grouped[item.category].push(item);
+    });
+    return grouped;
+  }, [packingItems]);
+
+  const getCategoryIcon = useCallback((category: string) => {
+    const cat = category.toLowerCase();
+    if (cat.includes("document") || cat.includes("security"))
+      return <FileText className="w-5 h-5" />;
+    if (cat.includes("beach") || cat.includes("water"))
+      return <Waves className="w-5 h-5" />;
+    if (cat.includes("cloth") || cat.includes("wear"))
+      return <Shirt className="w-5 h-5" />;
+    if (cat.includes("electronic") || cat.includes("tech"))
+      return <Bolt className="w-5 h-5" />;
+    if (cat.includes("luggage") || cat.includes("bag"))
+      return <ShoppingBag className="w-5 h-5" />;
+    return <MapPin className="w-5 h-5" />;
+  }, []);
+
+  const heroTransform = !isMobile ? `translateY(${scrollY * -0.05}px)` : "none";
+  const heroOpacity = !isMobile ? Math.max(0, 1 - scrollY / 800) : 1;
+  const blob1Transform = !isMobile
+    ? `translate(${scrollY * 0.03}px, ${scrollY * 0.05}px)`
+    : "none";
+  const blob2Transform = !isMobile
+    ? `translate(${scrollY * -0.03}px, ${scrollY * -0.05}px)`
+    : "none";
+
+  // --- RENDER LOGIC ---
+
+  const SkeletonLoader = React.memo(() => (
+    <div className="w-full max-w-4xl mb-12 animate-fade-in">
+      <div className="flex justify-between items-center gap-2 mb-4">
+        <div className="skeleton h-10 w-32 rounded-xl"></div>
+        <div className="flex gap-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="skeleton h-10 w-10 rounded-xl"></div>
+          ))}
+        </div>
+      </div>
+      <div className="glass-strong-dark rounded-2xl p-4 sm:p-6 shadow-2xl border border-white/20">
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="bg-white/5 rounded-xl overflow-hidden">
+              <div
+                className="p-4 animate-pulse"
+                style={{ animationDelay: `${i * 100}ms` }}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="skeleton h-11 w-11 rounded-lg flex-shrink-0"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="skeleton h-4 w-3/4 rounded"></div>
+                    <div className="skeleton h-3 w-1/2 rounded"></div>
+                  </div>
+                  <div className="skeleton h-8 w-16 rounded-full"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-6 text-center">
+        <div className="inline-flex items-center gap-3 glass-dark px-6 py-3 rounded-full border border-white/20">
+          <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+          <span className="text-white font-semibold">
+            Organizing your perfect list...
+          </span>
+        </div>
+      </div>
+    </div>
+  ));
+  SkeletonLoader.displayName = "SkeletonLoader";
+
+  return (
+    <>
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 4000,
+          style: { background: "#333", color: "#fff", borderRadius: "12px" },
+        }}
+      />
+      <Analytics />
+      <div className="relative min-h-screen dark-gradient overflow-hidden">
+        {/* Background layers */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 mesh-gradient"></div>
+          {!isMobile && (
+            <div className="absolute inset-0">
+              <div
+                className="absolute top-20 left-10 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl float-animation"
+                style={{
+                  transform: blob1Transform,
+                  opacity: Math.max(0.3, 1 - scrollY / 800),
+                  willChange: "transform, opacity",
+                }}
+              />
+              <div
+                className="absolute bottom-20 right-10 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl float-animation"
+                style={{
+                  animationDelay: "1s",
+                  transform: blob2Transform,
+                  opacity: Math.max(0.3, 1 - scrollY / 800),
+                  willChange: "transform, opacity",
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Header */}
+        <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/30 border-b border-white/10">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg pulse-glow"></div>
+              <span className="text-lg sm:text-xl font-bold text-white">
+                Packmind AI
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              {packingItems && packingItems.length > 0 && (
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="hidden sm:flex items-center gap-2 text-sm text-white/90">
+                    <span className="font-semibold">
+                      {packingItems.filter((i) => i.checked).length}/
+                      {packingItems.length}
+                    </span>
+                  </div>
+                  <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold shadow-lg hover:scale-105 active:scale-95 transition-all pulse-glow">
+                    {getProgress}% ✓
+                  </div>
+                </div>
+              )}
+              {status === "loading" ? (
+                <div className="w-20 h-9 skeleton rounded-full"></div>
+                <div className="flex items-center gap-2">
+                  <span className="hidden sm:inline text-white/90 text-sm">
+                  </span>
+                  <button
+                    className="bg-white/10 text-white px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium hover:bg-white/20 transition-colors"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold hover:from-purple-700 hover:to-pink-700 transition-colors shadow-lg hover:scale-105 active:scale-95"
+                >
+                  Sign In
+                </button>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <div className="h-14 sm:h-16"></div>
+
+        <main className="relative z-10 flex flex-col items-center justify-start px-3 sm:px-4 pt-6 sm:pt-12">
+          {!packingItems && !showSkeleton && (
+            <div
+              className="text-center mb-12 max-w-4xl mx-auto w-full"
+              style={{
+                transform: heroTransform,
+                opacity: heroOpacity,
+                willChange: "transform, opacity",
+              }}
+            >
+              <div className="inline-flex items-center gap-2 glass-dark px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium mb-6 border border-white/20 text-white animate-fade-in">
+                <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
+                <span>
+                  {liveCounter > 0
+                    ? `${liveCounter.toLocaleString()}+ travelers`
+                    : "Join thousands of travelers"}{" "}
+                  packed today
+                </span>
+              </div>
+              <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-center mb-4 sm:mb-6 text-white leading-tight animate-fade-in-up">
+                Stop Forgetting Essentials.
+                <br />
+                <span className="shimmer-text">Secure Your Trip.</span>
+              </h1>
+              <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-6 sm:mb-8 max-w-2xl mx-auto font-medium px-4 animate-fade-in-up delay-100">
+                AI eliminates packing anxiety. The tool that catches your
+                expensive mistakes.
+              </p>
+              <div className="flex items-center justify-center gap-2 mb-8 sm:mb-10 animate-fade-in delay-200">
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className="w-5 h-5 sm:w-6 sm:h-6 fill-yellow-400 text-yellow-400 star-glow"
+                    />
+                  ))}
+                </div>
+                <span className="text-white font-semibold text-sm sm:text-base">
+                  Loved by travelers worldwide
+                </span>
+              </div>
+              <button
+                onClick={handleStartConversation}
+                className="group relative bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 sm:px-12 py-4 sm:py-6 text-xl sm:text-2xl font-bold rounded-2xl transition-all shadow-2xl hover:shadow-3xl hover:scale-105 active:scale-95 touch-manipulation elite-cta animate-fade-in delay-300"
+                aria-label="Start Packing with AI"
+              >
+                <span className="relative z-10 flex items-center gap-2 sm:gap-3 justify-center">
+                  <Sparkles className="w-6 h-6 sm:w-8 sm:h-8" />
+                  You&apos;re One Click Away
+                </span>
+              </button>
+              <p className="mt-6 text-white/90 text-base sm:text-lg font-medium flex flex-wrap items-center justify-center gap-3 sm:gap-4 px-4 animate-fade-in delay-400">
+                <span className="glass-dark px-3 sm:px-4 py-2 rounded-full text-sm sm:text-base">
+                  <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 inline mr-2" />
+                  Chat naturally
+                </span>
+                <span className="glass-dark px-3 sm:px-4 py-2 rounded-full text-sm sm:text-base">
+                  <Zap className="w-3 h-3 sm:w-4 sm:h-4 inline mr-2" />
+                  Instant results
+                </span>
+                <span className="glass-dark px-3 sm:px-4 py-2 rounded-full text-sm sm:text-base">
+                  <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 inline mr-2" />
+                  100% customized
+                </span>
+              </p>
+            </div>
+          )}
+
+          {showSkeleton && <SkeletonLoader />}
+
+          {/* PHASE 3.2: PACKING LIST VIEW COMPONENT */}
+          {packingItems && packingItems.length > 0 && !showSkeleton && (
+            <PackingListView
+              handleShare={handleShare}
+              handleDownloadPDF={handleDownloadPDF}
+              handleEmailList={() => setModal("showEmailListModal", true)} // Inline handler is fine here
+              handleDelete={handleDelete}
+              handleShopClick={handleShopClick}
+              resultsRef={resultsRef} // Pass ref down for scrolling
+            />
+          )}
+
+          {/* PHASE 3.4: TESTIMONIALS AND FAQ COMPONENT */}
+          {!packingItems && !showSkeleton && <TestimonialsFAQ />}
+        </main>
+
+        <footer className="relative z-10 mt-16 sm:mt-24 pb-8 sm:pb-12 px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="glass-strong-dark rounded-2xl p-6 sm:p-10 border-2 border-white/20 shadow-2xl">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 sm:mb-4 text-center">
+                {emailCaptured
+                  ? "You're All Set!"
+                  : "Never Forget Essentials Again"}
+              </h2>
+              <p className="text-white/95 mb-6 text-base sm:text-lg text-center max-w-2xl mx-auto">
+                {emailCaptured
+                  ? "Share Packmind AI with your travel buddies!"
+                  : "Join thousands of smart travelers. Get packing tips delivered to your inbox!"}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+                {emailCaptured ? (
+                  <>
+                    <button
+                      onClick={handleShare}
+                      className="bg-white text-purple-600 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:bg-purple-50 transition-all shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 touch-manipulation"
+                    >
+                      Share With Friends
+                    </button>
+                    <button
+                      onClick={handleStartConversation}
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-xl hover:scale-105 active:scale-95 touch-manipulation"
+                    >
+                      Create Another List
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setModal("showEmailModal", true)}
+                    className="bg-white text-purple-600 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:bg-purple-50 transition-all shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 flex items-center gap-2 mx-auto touch-manipulation pulse-glow"
+                  >
+                    <Zap className="w-5 h-5 sm:w-6 sm:h-6" />
+                    Get Packing Tips
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-8 sm:mt-10 text-center text-white/80 text-sm space-y-3">
+              <p className="font-medium text-base sm:text-lg">
+                © 2025 Packmind AI. Made with care for travelers.
+              </p>
+              <div className="flex justify-center gap-3 sm:gap-4 flex-wrap px-4">
+                <Link
+                  href="/privacy"
+                  className="hover:text-white transition-colors touch-manipulation"
+                >
+                  Privacy Policy
+                </Link>
+                <span>•</span>
+                <Link
+                  href="/terms"
+                  className="hover:text-white transition-colors touch-manipulation"
+                >
+                  Terms of Service
+                </Link>
+                <span>•</span>
+                <Link
+                  href="/contact"
+                  className="hover:text-white transition-colors touch-manipulation"
+                >
+                  Contact Us
+                </Link>
+                <span>•</span>
+                <Link
+                  href="/blog"
+                  className="hover:text-white transition-colors touch-manipulation font-bold"
+                >
+                  Blog
+                </Link>
+              </div>
+              <p className="text-xs text-white/60 mt-4 px-4">
+                As an Amazon Associate, we earn from qualifying purchases at no
+                extra cost to you.
+              </p>
+            </div>
+          </div>
+        </footer>
+
+        {/* --- MODAL COMPONENTS --- */}
+
+        <AffiliateSuggestionModal
+          isOpen={modals.showAffiliateModal}
+          onClose={() => {
+            setModal("showAffiliateModal", false);
+            setSelectedItemData(null);
+          }}
+          itemData={selectedItemData}
+        />
+
+        {/* PHASE 3.1: CHAT INTERFACE COMPONENT */}
+        <ChatInterface
+          handleSendMessage={handleSendMessage}
+          isMobile={isMobile}
+          isGenerating={isGenerating}
+          setShowAutocomplete={setShowAutocomplete}
+          autocompleteSuggestions={autocompleteSuggestions}
+          showAutocomplete={showAutocomplete}
+        />
+
+        <ProUpgradeModal
+          isOpen={modals.showProModal}
+          onClose={() => {
+            setModal("showProModal", false);
+            trackConversionModalDismiss("pro", "power_user");
+          }}
+          listsCreated={listsCreatedCount}
+          timeSaved={timeSavedMinutes}
+        />
+
+        {/* PHASE 3.3: UTILITY MODALS (PDF, EMAIL LIST, SHARE, FOOTER EMAIL) */}
+
+        <PDFModal
+          isOpen={modals.showPDFModal}
+          onClose={() => setModal("showPDFModal", false)}
+          userName={userName}
+          setUserName={setUserName}
+          handleConfirmPDF={handleConfirmPDF}
+          pdfGenerating={pdfGenerating}
+        />
+
+        <EmailListModal
+          isOpen={modals.showEmailListModal}
+          onClose={() => setModal("showEmailListModal", false)}
+          userName={userName}
+          setUserName={setUserName}
+          userEmail={userEmail}
+          setUserEmail={setUserEmail}
+          handleConfirmEmail={handleConfirmEmail}
+          emailSending={emailSending}
+        />
+
+        <ShareModal
+          isOpen={modals.showShareModal}
+          onClose={() => setModal("showShareModal", false)}
+          shareLink={shareLink}
+        />
+
+        <FooterEmailModal
+          isOpen={modals.showEmailModal}
+          onClose={() => setModal("showEmailModal", false)}
+          userEmail={userEmail}
+          setUserEmail={setUserEmail}
+          setEmailCaptured={setEmailCaptured}
+        />
+
+        {showRemainingBanner &&
+          !false &&
+          remainingLists !== null &&
+          remainingLists <= 1 && (
+            <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-4 shadow-2xl z-40 animate-slide-up">
+              <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Zap className="w-5 h-5 animate-pulse" />
+                  <span className="font-bold text-sm sm:text-base">
+                    {remainingLists === 1
+                      ? "🔥 1 list left today!"
+                      : "⚠️ No lists remaining"}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    trackSignupModalView("banner", listsCreatedCount);
+                  }}
+                  className="bg-white text-purple-600 px-4 py-2 rounded-full font-bold text-sm hover:scale-105 transition-all"
+                >
+                  Sign In for Unlimited
+                </button>
+                <button
+                  onClick={() => setShowRemainingBanner(false)}
+                  className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+          )}
+      </div>
+    </>
+  );
+}

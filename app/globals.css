@@ -1,0 +1,375 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --primary: #8b5cf6;
+  --secondary: #ec4899;
+  --accent: #6366f1;
+}
+
+/* Better background gradient */
+.bg-main {
+  background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 25%, #701a75 50%, #831843 75%, #500724 100%);
+}
+
+/* STRONG iOS-style Glassmorphism */
+.glass-strong {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.37),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.2s ease-out;
+}
+
+.glass-strong:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 
+    0 12px 40px 0 rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+.glass-medium {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(30px) saturate(150%);
+  -webkit-backdrop-filter: blur(30px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 
+    0 4px 24px 0 rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease-out;
+}
+
+.glass-header {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Beautiful shadows */
+.shadow-soft {
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+}
+
+.shadow-medium {
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.12);
+}
+
+.shadow-strong {
+  box-shadow: 0 10px 50px rgba(0, 0, 0, 0.2);
+}
+
+.shadow-glow-purple {
+  box-shadow: 0 0 40px rgba(139, 92, 247, 0.3), 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.shadow-glow-pink {
+  box-shadow: 0 0 40px rgba(236, 72, 153, 0.3), 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Subtle glows */
+.glow-purple {
+  box-shadow: 0 0 20px rgba(139, 92, 247, 0.15);
+}
+
+.glow-pink {
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.15);
+}
+
+.glow-purple-strong {
+  box-shadow: 0 0 30px rgba(139, 92, 247, 0.3);
+}
+
+/* Fast gradient animation */
+.gradient-text {
+  background: linear-gradient(120deg, #ec4899, #8b5cf6, #6366f1, #8b5cf6, #ec4899);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 3s ease infinite;
+  will-change: background-position;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Floating orbs */
+.floating-orbs {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.15;
+  animation: float 25s ease-in-out infinite;
+  will-change: transform;
+}
+
+.orb-1 {
+  width: 600px;
+  height: 600px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  top: 10%;
+  left: 10%;
+}
+
+.orb-2 {
+  width: 500px;
+  height: 500px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  top: 50%;
+  right: 10%;
+  animation-delay: 8s;
+}
+
+.orb-3 {
+  width: 400px;
+  height: 400px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  bottom: 10%;
+  left: 40%;
+  animation-delay: 16s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(60px, -100px) scale(1.1); }
+  66% { transform: translate(-40px, 60px) scale(0.9); }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Progress bar */
+.progress-bar {
+  height: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(to right, #4ade80, #10b981);
+  transition: all 0.5s ease-out;
+}
+
+/* Button styles - no @apply, just regular CSS */
+.btn-primary {
+  background: linear-gradient(to right, #9333ea, #db2777);
+  color: white;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  transition: all 0.2s ease-out;
+  box-shadow: 0 0 40px rgba(139, 92, 247, 0.3), 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #7e22ce, #be185d);
+  transform: scale(1.05);
+}
+
+.btn-primary:active {
+  transform: scale(0.95);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(30px) saturate(150%);
+  -webkit-backdrop-filter: blur(30px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  transition: all 0.2s ease-out;
+  box-shadow: 
+    0 4px 24px 0 rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.05);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+}
+
+.btn-secondary:active {
+  transform: scale(0.95);
+}
+
+/* Card styles with strong glass */
+.card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 1rem;
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.37),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.2s ease-out;
+}
+
+.card:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 
+    0 12px 40px 0 rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 30px rgba(139, 92, 247, 0.4);
+}
+
+/* Premium badge */
+.premium-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: linear-gradient(to right, #fbbf24, #f97316);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 9999px;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Spacing */
+.section-padding {
+  padding: 3rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .section-padding {
+    padding: 3rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section-padding {
+    padding: 4rem 2rem;
+  }
+}
+
+.container-custom {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Shorter header */
+.header-compact {
+  height: 3.5rem;
+}
+
+/* Header z-index layering */
+.header-layered {
+  z-index: 40;
+}
+
+.hero-section {
+  position: relative;
+  z-index: 50;
+}
+
+.content-section {
+  position: relative;
+  z-index: 30;
+}
+
+/* Ghost text */
+.ghost-text {
+  position: absolute;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+}
+
+/* Smooth transitions */
+button, a, input, textarea {
+  transition: all 0.2s ease-out;
+}
+
+/* GPU acceleration */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Input/Textarea glass effect */
+input, textarea {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(30px) saturate(150%);
+  -webkit-backdrop-filter: blur(30px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 
+    0 4px 24px 0 rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+input:focus, textarea:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(139, 92, 247, 0.5);
+  outline: none;
+}
