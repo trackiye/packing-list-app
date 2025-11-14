@@ -28,15 +28,33 @@ export function middleware(req: NextRequest) {
     if (!rateLimit(ip, max)) {
       return new NextResponse(JSON.stringify({ error: 'Rate limit exceeded' }), {
         status: 429,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Retry-After': '60',
+        }
       });
     }
   }
   
   const res = NextResponse.next();
-  res.headers.set('X-Frame-Options', 'SAMEORIGIN');
+  
+  res.headers.set('X-Frame-Options', 'DENY');
   res.headers.set('X-Content-Type-Options', 'nosniff');
+  res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  
+  if (req.nextUrl.pathname.startsWith('/_next/static/') || 
+      req.nextUrl.pathname.startsWith('/images/')) {
+    res.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  }
+  
   return res;
 }
 
-export const config = { matcher: ['/api/:path*'] };
+export const config = { 
+  matcher: [
+    '/api/:path*',
+    '/_next/static/:path*',
+    '/images/:path*',
+  ] 
+};

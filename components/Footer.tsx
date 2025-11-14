@@ -4,12 +4,9 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="relative border-t border-white/10">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50" />
-      
+    <footer className="relative">
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          {/* Logo & Description */}
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
               <div className="p-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg">
@@ -36,15 +33,9 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Product */}
           <div>
             <h3 className="text-white font-semibold mb-4">Product</h3>
             <ul className="space-y-2">
-              <li>
-                <Link href="/#features" className="text-white/60 hover:text-white transition-colors">
-                  Features
-                </Link>
-              </li>
               <li>
                 <Link href="/pricing" className="text-white/60 hover:text-white transition-colors">
                   Pricing
@@ -58,20 +49,9 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Company */}
           <div>
             <h3 className="text-white font-semibold mb-4">Company</h3>
             <ul className="space-y-2">
-              <li>
-                <Link href="/about" className="text-white/60 hover:text-white transition-colors">
-                  About
-                </Link>
-              </li>
-              <li>
-                <Link href="/blog" className="text-white/60 hover:text-white transition-colors">
-                  Blog
-                </Link>
-              </li>
               <li>
                 <Link href="/contact" className="text-white/60 hover:text-white transition-colors">
                   Contact
@@ -91,7 +71,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/10 pt-8">
+        <div className="pt-8 border-t border-white/10">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-white/60 text-sm">
               © 2025 PackMind AI. All rights reserved.

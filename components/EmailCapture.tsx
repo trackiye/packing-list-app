@@ -44,10 +44,10 @@ export default function EmailCapture() {
         </div>
 
         <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-          Get Packing Tips & Updates
+          Get Packing Tips & Travel Guides
         </h2>
         <p className="text-xl text-white/70 mb-8">
-          Join travelers getting smarter about packing. No spam, just useful tips.
+          Practical travel advice delivered to your inbox. Unsubscribe anytime.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">

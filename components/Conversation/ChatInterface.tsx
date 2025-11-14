@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Loader2, Send, Palmtree, Mountain, Briefcase, Tent, Plane, Ship } from "lucide-react";
+import { Loader2, Send, Palmtree, Mountain, Briefcase, Tent, Plane, Ship, Sun, Snowflake, CloudRain, Wind } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -23,6 +23,13 @@ const QUICK_START_SUGGESTIONS = [
   { Icon: Ship, text: "Caribbean cruise for 7 days", color: "text-cyan-400" },
 ];
 
+const WEATHER_ICONS = {
+  "Summer/Hot": Sun,
+  "Winter/Cold": Snowflake,
+  "Spring/Mild": CloudRain,
+  "Fall/Cool": Wind,
+};
+
 export default function ChatInterface({ onGenerateList, isGenerating }: ChatInterfaceProps) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -42,7 +49,7 @@ export default function ChatInterface({ onGenerateList, isGenerating }: ChatInte
         isQuestion: true,
         quickReplies: ["Hotel", "Airbnb", "Friend's Place", "Camping", "Hostel"]
       };
-      setMessages(prev => [...prev, q]);
+      setMessages((prev: Message[]) => [...prev, q]);
     }, 800);
   };
 
@@ -63,24 +70,24 @@ export default function ChatInterface({ onGenerateList, isGenerating }: ChatInte
             isQuestion: true,
             quickReplies: ["Hotel", "Airbnb", "Friend's Place", "Camping", "Hostel"]
           };
-          setMessages(prev => [...prev, q]);
+          setMessages((prev: Message[]) => [...prev, q]);
         }, 800);
       } else if (!conversationContext.accommodation) {
-        setConversationContext(prev => ({ ...prev, accommodation: message }));
-        setMessages(prev => [...prev, userMessage]);
+        setConversationContext((prev: any) => ({ ...prev, accommodation: message }));
+        setMessages((prev: Message[]) => [...prev, userMessage]);
         
         setTimeout(() => {
           const q: Message = {
             role: "assistant",
             content: "Perfect! What's the weather/season?",
             isQuestion: true,
-            quickReplies: ["Summer/Hot ☀️", "Winter/Cold ❄️", "Spring/Mild 🌸", "Fall/Cool 🍂"]
+            quickReplies: ["Summer/Hot", "Winter/Cold", "Spring/Mild", "Fall/Cool"]
           };
-          setMessages(prev => [...prev, q]);
+          setMessages((prev: Message[]) => [...prev, q]);
         }, 600);
       } else {
         const ctx = { ...conversationContext, season: message };
-        setMessages(prev => [...prev, userMessage]);
+        setMessages((prev: Message[]) => [...prev, userMessage]);
         onGenerateList(message, ctx);
       }
       
@@ -90,23 +97,28 @@ export default function ChatInterface({ onGenerateList, isGenerating }: ChatInte
 
   const handleQuickReply = (reply: string) => {
     const userMessage = { role: "user" as const, content: reply };
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev: Message[]) => [...prev, userMessage]);
     
     if (!conversationContext.accommodation) {
-      setConversationContext(prev => ({ ...prev, accommodation: reply }));
+      setConversationContext((prev: any) => ({ ...prev, accommodation: reply }));
       setTimeout(() => {
         const q: Message = {
           role: "assistant",
           content: "Perfect! What's the weather/season?",
           isQuestion: true,
-          quickReplies: ["Summer/Hot ☀️", "Winter/Cold ❄️", "Spring/Mild 🌸", "Fall/Cool 🍂"]
+          quickReplies: ["Summer/Hot", "Winter/Cold", "Spring/Mild", "Fall/Cool"]
         };
-        setMessages(prev => [...prev, q]);
+        setMessages((prev: Message[]) => [...prev, q]);
       }, 600);
     } else {
       const ctx = { ...conversationContext, season: reply };
       onGenerateList(reply, ctx);
     }
+  };
+
+  const getWeatherIcon = (text: string) => {
+    const Icon = WEATHER_ICONS[text as keyof typeof WEATHER_ICONS];
+    return Icon ? <Icon className="w-4 h-4 inline-block mr-1" /> : null;
   };
 
   return (
@@ -155,8 +167,9 @@ export default function ChatInterface({ onGenerateList, isGenerating }: ChatInte
                       <button
                         key={i}
                         onClick={() => handleQuickReply(reply)}
-                        className="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 rounded-full text-sm transition-all hover:scale-105"
+                        className="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 rounded-full text-sm transition-all hover:scale-105 flex items-center gap-1"
                       >
+                        {getWeatherIcon(reply)}
                         {reply}
                       </button>
                     ))}
