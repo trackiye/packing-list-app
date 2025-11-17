@@ -4,7 +4,7 @@
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, CheckCircle, Loader2 } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; // CLEANED IMPORT
 
 // Dummy data structure for the list page
 const MOCK_LIST_DATA = {
@@ -85,7 +85,7 @@ export default function ListPage({ params }: { params: { id: string } }) {
 
     return (
         <div className="container mx-auto p-6 max-w-4xl">
-            <h1 className="text-4xl font-extrabold text-gray-900 mb-6">{listData.tripName} Packing List}</h1>
+            <h1 className="text-4xl font-extrabold text-gray-900 mb-6">{listData.tripName} Packing List</h1>
 
             <ul className="space-y-4">
                 {listData.items.map((item, index) => (
