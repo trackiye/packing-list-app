@@ -1,23 +1,20 @@
 // lib/user-storage.ts
 // --- IN-MEMORY MOCK REDIS FOR LOCAL DEVELOPMENT/TESTING ---
-// NOTE: This prevents the app from crashing on Redis connection failures.
-// Use this only until your UPSTASH_REDIS_URL is correctly configured.
+// MOCK: This prevents the app from crashing on Redis connection failures.
 const inMemoryCache: Record<string, number> = {};
 
 class MockRedis {
     async get(key: string): Promise<string | null> {
         return (inMemoryCache[key] !== undefined) ? String(inMemoryCache[key]) : null;
     }
-
-    async set(key: string, value: string | number, mode: string, ttl: number): Promise<void> {
+    async set(key: string, value: string | number): Promise<void> {
         inMemoryCache[key] = Number(value);
-        // Timeout is ignored in this simple mock
     }
 }
+// Initialize the mock instance globally
 const redis = new MockRedis();
 // --- END MOCK ---
 
-const LIST_COUNT_TTL = 60 * 60 * 24 * 365;
 const getKey = (userId: string) => `user:listsGenerated:${userId}`;
 
 /**
@@ -39,20 +36,18 @@ export async function getListsGenerated(userId: string): Promise<number> {
 export async function incrementListCount(userId: string): Promise<void> {
     try {
         const currentCount = await getListsGenerated(userId);
-        // NOTE: In-memory cache is shared, so this will globally increment the count during dev.
-        await redis.set(getKey(userId), currentCount + 1, 'EX', LIST_COUNT_TTL);
+        // In-memory cache simply overwrites with +1
+        await redis.set(getKey(userId), currentCount + 1);
     } catch (e) {
         console.error("Error incrementing list count:", e);
     }
 }
 
-// --- FIX: Add Exports expected by /api/chat/route.ts ---
-
 // MOCK: Placeholder for the function the API is expecting.
 export async function isUserPro(userId: string): Promise<boolean> {
-    // We can simulate a Pro user if the ID contains 'pro' for local testing
+    // Pro status is determined if the user ID contains 'pro' for local testing
     return userId.includes('pro');
 }
 
-// MOCK: Renames the existing increment function for the API.
+// CRITICAL FIX: Export the function name the API route (app/api/chat/route.ts) is expecting.
 export const incrementLists = incrementListCount;
