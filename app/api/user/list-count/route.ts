@@ -1,13 +1,17 @@
 // app/api/user/list-count/route.ts
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { getListsGenerated } from '@/lib/user-storage';
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth"; // Standard NextAuth import
+import { authOptions } from "@/lib/auth"; // Assuming your NextAuth options are here
+import { getListsGenerated } from "@/lib/user-storage";
 
 export async function GET() {
-  const { userId } = auth();
-  if (!userId) { 
+  // --- AUTH FIX: Use NextAuth session ---
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id; // Assuming the session object includes user.id
+
+  if (!userId) {
     // Return max count for logged-out users (they get hit by the sign-in modal first)
-    return NextResponse.json({ currentCount: 0, maxFreeLists: 3 }); 
+    return NextResponse.json({ currentCount: 0, maxFreeLists: 3 });
   }
 
   try {
@@ -15,10 +19,10 @@ export async function GET() {
 
     return NextResponse.json({
       currentCount: currentCount,
-      maxFreeLists: 3
+      maxFreeLists: 3,
     });
   } catch (error) {
-    console.error('Error fetching list count:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    console.error("Error fetching list count:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
