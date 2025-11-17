@@ -1,29 +1,37 @@
 // lib/auth.ts
-import { AuthOptions } from 'next-auth';
-import GoogleProvider from 'next-auth/providers/google';
-import { PrismaAdapter } from '@auth/prisma-adapter'; // Assuming you use Prisma for DB
+import { NextAuthOptions } from 'next-auth';
+import GoogleProvider from 'next-auth/providers/google'; // Correct Import Path
 
-// NOTE: You must have GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, 
-// and NEXTAUTH_SECRET set in your .env.local file.
+// NOTE: Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are in your .env.local
 
-export const authOptions: AuthOptions = {
-  // adapter: PrismaAdapter(prisma), // Uncomment if you are using Prisma
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    }),
-    // Add more providers here if needed
-  ],
-  // Secret should be a random string.
-  secret: process.env.NEXTAUTH_SECRET,
-  callbacks: {
-    async session({ session, token, user }) {
-      // Add user ID to the session object for use in API routes
-      if (session.user) {
-        session.user.id = user?.id || token.sub; // token.sub is the user ID if no database adapter is used
-      }
-      return session;
+export const authOptions: NextAuthOptions = {
+    providers: [
+        GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID as string,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+        }),
+    ],
+    pages: {
+        signIn: '/login',
     },
-  },
+    callbacks: {
+        async session({ session, token }) {
+            // CRITICAL: Inject userId and isPro status into the session object for API consumption
+            if (session.user) {
+                // Mock a simple userId based on email (REQUIRED for list counting)
+                session.user.id = token.sub || session.user.email; 
+                
+                // MOCK isPro check based on email containing 'pro'
+                session.user.isPro = session.user.email?.includes('pro') || false;
+            }
+            return session;
+        },
+        async jwt({ token, user }) {
+            if (user) {
+                // Pass user data (like user.id) to the token
+                token.id = user.id;
+            }
+            return token;
+        },
+    },
 };

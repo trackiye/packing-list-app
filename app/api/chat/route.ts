@@ -1,14 +1,15 @@
 // app/api/chat/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { getListsGenerated, incrementLists, isUserPro } from '@/lib/user-storage'; // Ensure functions are imported
+import { authOptions } from '@/lib/auth'; // CRITICAL: Import authOptions
+import { getListsGenerated, incrementLists, isUserPro } from '@/lib/user-storage';
 
 const MAX_FREE_LISTS = 3; 
 
 export async function POST(req: Request) {
+    // 1. Get Session from Server
     const session = await getServerSession(authOptions);
-    const userId = session?.user?.id;
+    const userId = session?.user?.id; // Rely on the ID injected in the auth callback
 
     if (!userId) {
          // Return plain text "Unauthorized" which HeroForm.tsx is now ready to handle.
@@ -33,7 +34,6 @@ export async function POST(req: Request) {
         }
 
         // --- DUMMY LIST GENERATION LOGIC ---
-        // Simulates the list generation process
         const listId = `list-${Date.now()}`; 
 
         // 3. Increment list count if not Pro
