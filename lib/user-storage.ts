@@ -1,6 +1,4 @@
 // lib/user-storage.ts
-// import { Redis } from 'ioredis'; // Original import causing errors
-
 // --- IN-MEMORY MOCK REDIS FOR LOCAL DEVELOPMENT/TESTING ---
 // NOTE: This prevents the app from crashing on Redis connection failures.
 // Use this only until your UPSTASH_REDIS_URL is correctly configured.
@@ -41,8 +39,20 @@ export async function getListsGenerated(userId: string): Promise<number> {
 export async function incrementListCount(userId: string): Promise<void> {
     try {
         const currentCount = await getListsGenerated(userId);
+        // NOTE: In-memory cache is shared, so this will globally increment the count during dev.
         await redis.set(getKey(userId), currentCount + 1, 'EX', LIST_COUNT_TTL);
     } catch (e) {
         console.error("Error incrementing list count:", e);
     }
 }
+
+// --- FIX: Add Exports expected by /api/chat/route.ts ---
+
+// MOCK: Placeholder for the function the API is expecting.
+export async function isUserPro(userId: string): Promise<boolean> {
+    // We can simulate a Pro user if the ID contains 'pro' for local testing
+    return userId.includes('pro');
+}
+
+// MOCK: Renames the existing increment function for the API.
+export const incrementLists = incrementListCount;
