@@ -4,8 +4,7 @@
 import { SessionProvider } from 'next-auth/react';
 import React from 'react';
 
-// NOTE: This component wraps the application with NextAuth's SessionProvider.
-// The failure (reading 'call') often means this wrapper was missing or malformed.
+// This component MUST be a client component because it uses next-auth/react
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
     return (
         <SessionProvider>

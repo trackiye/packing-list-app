@@ -3,8 +3,6 @@ import './globals.css';
 import { Inter } from 'next/font/google';
 import AuthProvider from '@/components/auth-provider'; // Corrected Import Path
 import { Toaster } from '@/components/ui/toaster'; 
-// NOTE: Assuming Analytics is available or we temporarily comment it out if it fails next
-// import Analytics from '@/components/analytics'; 
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -24,7 +22,6 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <Toaster position="top-center" />
-          {/* <Analytics />  */}
         </AuthProvider>
       </body>
     </html>
