@@ -1,15 +1,13 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Toaster } from "react-hot-toast";
-import { Analytics } from "@/components/Analytics";
-import AuthProvider from "@/components/AuthProvider";
+// app/layout.tsx
+import './globals.css';
+import { Inter } from 'next/font/google';
+import NextAuthSessionProvider from '@/components/providers/session-provider'; // Import provider
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 
-export const metadata: Metadata = {
-  title: "PackMind AI - Smart Packing Lists in Seconds",
-  description: "Stop forgetting essentials. AI-powered packing lists for stress-free travel.",
+export const metadata = {
+  title: 'PackMindAI - The AI Packing Co-Pilot',
+  description: 'Never forget an item again. AI-powered packing lists.',
 };
 
 export default function RootLayout({
@@ -18,13 +16,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning>
-        <AuthProvider>
+    <html lang="en">
+      <body className={inter.className}>
+        {/* Wrap the entire application with the SessionProvider */}
+        <NextAuthSessionProvider>
           {children}
-          <Toaster position="top-center" />
-          <Analytics />
-        </AuthProvider>
+        </NextAuthSessionProvider>
       </body>
     </html>
   );
