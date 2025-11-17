@@ -12,6 +12,7 @@
     "@ai-sdk/openai": "^1.0.8",
     "@radix-ui/react-dialog": "^1.1.8",
     "@radix-ui/react-slot": "^1.1.1",
+    "@radix-ui/react-toast": "^1.2.15",
     "@sentry/nextjs": "^10.25.0",
     "@stripe/stripe-js": "^8.4.0",
     "@upstash/ratelimit": "^2.0.4",

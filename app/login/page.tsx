@@ -38,7 +38,7 @@ export default function LoginPage() {
 
           <div className="text-center">
             <p className="text-white/60 text-sm">
-              Don't have an account?{" "}
+              DonDon't have an accountapos;t have an account?{" "}
               <button
                 onClick={() => signIn("google", { callbackUrl: "/" })}
                 className="text-purple-300 hover:text-purple-200 font-semibold"
