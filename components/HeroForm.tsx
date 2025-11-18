@@ -9,7 +9,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import UpgradeDialog from '@/components/upgrade-dialog';
 import { Loader2, ArrowRight, Plane, Calendar, MapPin } from 'lucide-react'; 
 import { useSession } from 'next-auth/react';
-import { useToast } from '@/components/ui/use-toast'; // New: Import toast hook
+// Assuming useToast is correctly configured in components/ui/use-toast.ts
+// If you deleted the file, this import will fail, but we'll assume it exists.
+import { useToast } from '@/components/ui/use-toast'; 
 
 interface FormData {
   tripName: string;
@@ -22,7 +24,7 @@ const MAX_FREE_LISTS = 3;
 export default function HeroForm() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { toast } = useToast(); // Initialize toast
+  const { toast } = useToast(); 
   const isSignedIn = status === 'authenticated';
   const [formData, setFormData] = useState<FormData>({
     tripName: '',
@@ -60,8 +62,8 @@ export default function HeroForm() {
         description: "Please sign in to generate your personalized packing list.",
         type: "warning",
       });
-      router.push('/login'); // Nudge sign-in/login if not authenticated
-      return;
+      router.push('/login'); // CRITICAL NUDGE
+      return; // STOP EXECUTION HERE
     }
 
     setIsLoading(true);
@@ -73,32 +75,32 @@ export default function HeroForm() {
         body: JSON.stringify({...formData, tripDetails: `Trip to ${formData.destination} for ${formData.duration} days.`}),
       });
       
-      // Check 2: Handle non-JSON 401/400 errors (Fixes: Unexpected token 'U')
-      if (response.status === 401 || response.status === 400) {
-          const textError = await response.text();
+      // CRITICAL FIX: Handle non-JSON 401/400/500 errors (Fixes: Unexpected token 'U')
+      if (!response.ok) {
+          const textError = await response.text(); // Read as plain text
+          
+          if (response.status === 402) {
+             const data = JSON.parse(textError);
+             if (data.error === 'LIST_LIMIT_REACHED') {
+                setShowUpgrade(true);
+                setListsRemaining(0);
+                return;
+             }
+          }
+
           toast({
-              title: "Error: Generation Failed",
-              description: textError || "Authentication error. Please re-login.",
+              title: "Error: API Failed",
+              description: textError || `Status ${response.status}: Failed to generate list.`,
               type: "error"
           });
           setIsLoading(false);
           return;
       }
 
-      const data = await response.json();
-
-      if (response.status === 402 && data.error === 'LIST_LIMIT_REACHED') {
-        setShowUpgrade(true);
-        setListsRemaining(0);
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to generate list.');
-      }
+      const data = await response.json(); // Safely parse successful JSON response
 
       // Successful generation
-      // setListsRemaining(data.listsRemaining); // Re-enable when API returns real count
+      // setListsRemaining(data.listsRemaining); 
       toast({
           title: "Success! List Generated.",
           description: `Your list for ${formData.tripName} is ready.`,
