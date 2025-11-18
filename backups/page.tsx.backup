@@ -24,66 +24,27 @@ export default function Home() {
     setIsGenerating(true);
     setDataReady(false);
     setPackingItems(null);
-
+    
     try {
-      console.log('Sending to API:', { message, context });
-
-      // Extract trip details from message or context
-      const tripName = context?.tripName || message || 'My Trip';
-      const destination = context?.destination || 'Unknown Destination';
-      const duration = context?.duration || 7;
-
-      const requestBody = {
-        message: message,
-        context: context,
-        tripName: tripName,
-        destination: destination,
-        duration: duration,
-        tripDetails: `Trip to ${destination} for ${duration} days. ${message || ''}`
-      };
-
-      console.log('Request body:', requestBody);
-
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ message, context }),
       });
 
-      console.log('Response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`API Error: ${response.status} - ${errorText}`);
-      }
-
       const data = await response.json();
-      console.log('Success! Data:', data);
-
-      // Check if we got a listId (for redirect) or categories (for display)
-      if (data.listId) {
-        // Redirect to the list page with the content
-        const params = new URLSearchParams({
-          content: encodeURIComponent(data.content || data.message || ''),
-          tripName: data.tripName || tripName,
-          destination: data.destination || destination,
-          duration: data.duration || duration.toString()
-        });
-        router.push(`/list/${data.listId}?${params.toString()}`);
-      } else {
-        // Display inline (old flow)
-        setDataReady(true);
-        setTimeout(() => {
-          setPackingItems(data);
-          setPackedCount(0);
-          setIsGenerating(false);
-          setDataReady(false);
-        }, 800);
-      }
+      
+      setDataReady(true);
+      
+      setTimeout(() => {
+        setPackingItems(data);
+        setPackedCount(0);
+        setIsGenerating(false);
+        setDataReady(false);
+      }, 800);
+      
     } catch (error) {
       console.error("Error:", error);
-      alert(`Failed to generate list: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsGenerating(false);
       setDataReady(false);
     }
@@ -91,12 +52,21 @@ export default function Home() {
 
   const handleToggleItem = (category: string, itemIndex: number) => {
     setPackingItems((prev: any) => {
-      if (!prev?.categories?.[category]) return prev;
+      if (!prev?.categories?.[category]) {
+        console.error("Category not found:", category);
+        return prev;
+      }
+      
       const newItems = JSON.parse(JSON.stringify(prev));
       const item = newItems.categories[category][itemIndex];
-      if (!item) return prev;
+      
+      if (!item) {
+        console.error("Item not found:", category, itemIndex);
+        return prev;
+      }
       
       item.packed = !item.packed;
+      
       let count = 0;
       Object.values(newItems.categories).forEach((items: any) => {
         items.forEach((item: any) => {
@@ -104,6 +74,7 @@ export default function Home() {
         });
       });
       setPackedCount(count);
+      
       return newItems;
     });
   };
@@ -121,6 +92,7 @@ export default function Home() {
     <>
       <div className="fixed inset-0 bg-gradient-to-br from-purple-900 via-indigo-900 to-pink-900 -z-10" />
       <Background />
+      
       <Header />
       
       {packingItems && (
@@ -128,7 +100,8 @@ export default function Home() {
       )}
       
       {isGenerating && <GenerationAnimation onComplete={dataReady} />}
-
+      
+      {/* Main content - no top padding so hero goes full height */}
       <div className="min-h-screen">
         {!packingItems ? (
           <>
@@ -153,7 +126,7 @@ export default function Home() {
             </main>
           </div>
         )}
-        
+
         <EmailCapture />
         <Footer />
       </div>

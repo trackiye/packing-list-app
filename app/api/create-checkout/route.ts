@@ -1,84 +1,80 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const PLANS = {
-  pro: {
-    name: "Pro",
-    price: 1200,
-    interval: "month" as const,
-  },
   lifetime: {
-    name: "Lifetime",
-    price: 14900,
-    interval: null,
+    name: "Lifetime Pro",
+    price: 1900,
+    priceId: process.env.STRIPE_PRICE_ID_LIFETIME,
   },
 };
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
     const { plan } = await req.json();
-    
+
     if (!plan || !PLANS[plan as keyof typeof PLANS]) {
-      return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid plan" },
+        { status: 400 }
+      );
     }
 
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) {
       return NextResponse.json(
-        { error: "Payment system not configured. Add STRIPE_SECRET_KEY to environment." },
-        { status: 503 }
+        { error: "Stripe not configured" },
+        { status: 500 }
       );
     }
 
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(stripeKey, {
-      apiVersion: "2024-11-20.acacia",
+      apiVersion: "2025-10-29.clover",
     });
 
     const planDetails = PLANS[plan as keyof typeof PLANS];
-    
+
+    if (!planDetails.priceId) {
+      return NextResponse.json(
+        { error: "Price ID not configured" },
+        { status: 500 }
+      );
+    }
+
     const checkoutSession = await stripe.checkout.sessions.create({
-      mode: planDetails.interval ? "subscription" : "payment",
-      customer_email: session.user.email,
+      mode: "payment",
+      payment_method_types: ["card"],
       line_items: [
         {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: `PackMind AI ${planDetails.name}`,
-              description: planDetails.interval 
-                ? "AI-powered packing lists with unlimited generations"
-                : "Lifetime access to PackMind AI Pro features",
-            },
-            unit_amount: planDetails.price,
-            ...(planDetails.interval && {
-              recurring: {
-                interval: planDetails.interval,
-              },
-            }),
-          },
+          price: planDetails.priceId,
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_URL}/dashboard?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_URL}/pricing?canceled=true`,
+      success_url: `${process.env.NEXTAUTH_URL}/dashboard?success=true`,
+      cancel_url: `${process.env.NEXTAUTH_URL}/pricing?canceled=true`,
+      customer_email: session.user.email || undefined,
       metadata: {
-        userId: session.user.email,
-        plan,
+        userId: (session.user as { id?: string }).id || "",
+        plan: plan,
       },
     });
 
     return NextResponse.json({ url: checkoutSession.url });
   } catch (error) {
-    console.error("Stripe error:", error);
+    console.error("Stripe checkout error:", error);
     return NextResponse.json(
-      { error: "Payment setup failed" },
+      { error: "Failed to create checkout session" },
       { status: 500 }
     );
   }

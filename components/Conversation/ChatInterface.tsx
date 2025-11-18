@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { Loader2, Send, Palmtree, Mountain, Briefcase, Tent, Plane, Ship, Sun, Snowflake, CloudRain, Wind } from "lucide-react";
 
 interface Message {
@@ -31,15 +32,33 @@ const WEATHER_ICONS = {
 };
 
 export default function ChatInterface({ onGenerateList, isGenerating }: ChatInterfaceProps) {
+  const { data: session } = useSession();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationContext, setConversationContext] = useState<any>({});
   const [showSuggestions, setShowSuggestions] = useState(true);
 
+  const parseInitialTrip = (tripText: string) => {
+    const durationMatch = tripText.match(/(\d+)\s+(day|week|month)s?/i);
+    const duration = durationMatch ? parseInt(durationMatch[1]) * (durationMatch[2].toLowerCase().includes('week') ? 7 : durationMatch[2].toLowerCase().includes('month') ? 30 : 1) : 7;
+    
+    const destinationMatch = tripText.match(/(?:to|in)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i);
+    const destination = destinationMatch ? destinationMatch[1] : tripText.split(' ')[0];
+    
+    return { destination, duration };
+  };
+
   const handleQuickStart = (suggestion: string) => {
     const userMessage = { role: "user" as const, content: suggestion };
+    const { destination, duration } = parseInitialTrip(suggestion);
+    
     setMessages([userMessage]);
-    setConversationContext({ initialTrip: suggestion });
+    setConversationContext({ 
+      initialTrip: suggestion,
+      destination,
+      duration,
+      tripName: suggestion 
+    });
     setShowSuggestions(false);
     
     setTimeout(() => {
@@ -59,8 +78,14 @@ export default function ChatInterface({ onGenerateList, isGenerating }: ChatInte
       const userMessage = { role: "user" as const, content: message };
       
       if (messages.length === 0) {
+        const { destination, duration } = parseInitialTrip(message);
         setMessages([userMessage]);
-        setConversationContext({ initialTrip: message });
+        setConversationContext({ 
+          initialTrip: message, 
+          destination, 
+          duration,
+          tripName: message 
+        });
         setShowSuggestions(false);
         
         setTimeout(() => {
@@ -111,103 +136,125 @@ export default function ChatInterface({ onGenerateList, isGenerating }: ChatInte
         setMessages((prev: Message[]) => [...prev, q]);
       }, 600);
     } else {
-      const ctx = { ...conversationContext, season: reply };
-      onGenerateList(reply, ctx);
+      const finalContext = { ...conversationContext, season: reply };
+      onGenerateList(reply, finalContext);
     }
   };
 
   const getWeatherIcon = (text: string) => {
     const Icon = WEATHER_ICONS[text as keyof typeof WEATHER_ICONS];
-    return Icon ? <Icon className="w-4 h-4 inline-block mr-1" /> : null;
+    return Icon ? <Icon className="w-4 h-4 mr-2" /> : null;
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
-      {showSuggestions && messages.length === 0 && (
-        <div className="mb-8">
-          <h3 className="text-white/80 text-sm font-medium mb-4 text-center">
-            Quick Start - Choose a trip:
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {QUICK_START_SUGGESTIONS.map((sug, idx) => {
-              const Icon = sug.Icon;
-              return (
+    <div className="w-full max-w-3xl mx-auto">
+      <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
+        {showSuggestions && messages.length === 0 ? (
+          <div className="p-8">
+            <h2 className="text-3xl font-bold text-white mb-6 text-center">
+              ✨ Where are you headed?
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {QUICK_START_SUGGESTIONS.map((suggestion, idx) => (
                 <button
                   key={idx}
-                  onClick={() => handleQuickStart(sug.text)}
-                  className="glass-medium p-4 rounded-xl hover:bg-white/15 transition-all text-left group hover:scale-105"
+                  onClick={() => handleQuickStart(suggestion.text)}
+                  className="flex items-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-all hover:scale-105 text-left border border-white/10"
+                  disabled={isGenerating}
                 >
-                  <Icon className={`w-8 h-8 mb-2 ${sug.color}`} />
-                  <div className="text-white text-sm">{sug.text}</div>
+                  <suggestion.Icon className={`w-6 h-6 ${suggestion.color}`} />
+                  <span className="text-white font-medium">{suggestion.text}</span>
                 </button>
-              );
-            })}
-          </div>
-          <div className="text-center mt-6 text-white/50 text-sm">
-            Or describe your own trip below ↓
-          </div>
-        </div>
-      )}
-
-      {messages.length > 0 && (
-        <div className="mb-6 space-y-4">
-          {messages.map((msg, idx) => (
-            <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[80%] ${msg.role === "user" ? "" : "w-full"}`}>
-                <div className={`px-4 py-3 rounded-2xl ${
-                  msg.role === "user"
-                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
-                    : "bg-white/10 text-white border border-white/20"
-                }`}>
-                  {msg.content}
-                </div>
-                {msg.quickReplies && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {msg.quickReplies.map((reply, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleQuickReply(reply)}
-                        className="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 rounded-full text-sm transition-all hover:scale-105 flex items-center gap-1"
-                      >
-                        {getWeatherIcon(reply)}
-                        {reply}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit}>
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl border-2 border-white/20">
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder={messages.length === 0 ? "Describe your trip... (e.g., 'Weekend trip to Paris')" : "Type your answer..."}
-            className="w-full px-6 py-5 bg-transparent text-white placeholder-white/50 resize-none focus:outline-none min-h-[120px] text-lg"
-            disabled={isGenerating}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit(e);
-              }
-            }}
-          />
-          <div className="flex justify-end px-6 py-4 border-t border-white/10">
-            <button
-              type="submit"
-              disabled={!message.trim() || isGenerating}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full font-semibold disabled:opacity-50 hover:shadow-lg transition-all"
-            >
-              {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              {messages.length === 0 ? "Start Packing" : "Send"}
-            </button>
+            
+            <div className="border-t border-white/20 pt-6">
+              <p className="text-white/70 text-center mb-4 text-sm">Or describe your trip:</p>
+              <form onSubmit={handleSubmit} className="flex gap-2">
+                <input
+                  type="text"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="e.g., Weekend camping in Yosemite for 3 days"
+                  className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  disabled={isGenerating}
+                />
+                <button
+                  type="submit"
+                  disabled={isGenerating || !message.trim()}
+                  className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isGenerating ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-white" />
+                  ) : (
+                    <Send className="w-5 h-5 text-white" />
+                  )}
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
-      </form>
+        ) : (
+          <>
+            <div className="p-6 max-h-96 overflow-y-auto space-y-4">
+              {messages.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                      msg.role === "user"
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white"
+                        : "bg-white/20 text-white"
+                    }`}
+                  >
+                    <p className="text-sm">{msg.content}</p>
+                    {msg.quickReplies && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {msg.quickReplies.map((reply, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handleQuickReply(reply)}
+                            className="flex items-center px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-full text-xs font-medium transition-all"
+                            disabled={isGenerating}
+                          >
+                            {getWeatherIcon(reply)}
+                            {reply}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-4 border-t border-white/10">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  disabled={isGenerating}
+                />
+                <button
+                  type="submit"
+                  disabled={isGenerating || !message.trim()}
+                  className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isGenerating ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-white" />
+                  ) : (
+                    <Send className="w-5 h-5 text-white" />
+                  )}
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+      </div>
     </div>
   );
 }

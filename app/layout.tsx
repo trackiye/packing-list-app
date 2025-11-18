@@ -1,14 +1,14 @@
-// app/layout.tsx
-import './globals.css';
-import { Inter } from 'next/font/google';
-import AuthProvider from '@/components/auth-provider'; // Corrected Import Path
-import { Toaster } from '@/components/ui/toaster'; 
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { Toaster } from "react-hot-toast";
+import AuthProvider from "@/components/AuthProvider";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ["latin"] });
 
-export const metadata = {
-  title: 'PackMindAI - The AI Packing Co-Pilot',
-  description: 'Pack Smarter. Travel Lighter. AI-powered packing lists for any trip.',
+export const metadata: Metadata = {
+  title: "PackMind AI - Smart Packing Lists",
+  description: "AI-powered packing lists for stress-free travel",
 };
 
 export default function RootLayout({

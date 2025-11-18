@@ -1,0 +1,97 @@
+'use client';
+import { useSession } from 'next-auth/react';
+import { Button } from '@/components/ui/button';
+import { ShoppingCart, CheckCircle, Loader2, Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+
+export default function ListPage({ params }: { params: { id: string } }) {
+  const { data: session, status } = useSession();
+  const [listData, setListData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // REAL DATA FETCHING
+  useEffect(() => {
+    const fetchList = async () => {
+      try {
+        const response = await fetch(`/api/lists/${params.id}`);
+        if (!response.ok) throw new Error('List not found');
+        const data = await response.json();
+        setListData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load list');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchList();
+  }, [params.id]);
+
+  // Auto-scroll to result after load
+  useEffect(() => {
+    if (listData && !isLoading) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [listData, isLoading]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin mx-auto text-cyan-500 mb-4" />
+          <p className="text-lg text-gray-600">Generating your perfect packing list...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg text-red-600">{error}</p>
+          <Button onClick={() => window.location.href = '/'} className="mt-4">
+            Back to Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6 max-w-4xl">
+      <div className="mb-8">
+        <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
+          {listData?.tripName || 'Your Packing List'}
+        </h1>
+        <p className="text-gray-600">
+          {listData?.destination && `${listData.destination} • `}
+          {listData?.duration && `${listData.duration} days`}
+        </p>
+      </div>
+
+      {/* RENDER THE ACTUAL AI CONTENT */}
+      <div className="prose prose-lg max-w-none bg-white p-8 rounded-lg shadow-lg">
+        <ReactMarkdown>{listData?.content || ''}</ReactMarkdown>
+      </div>
+
+      {/* Download Button */}
+      <div className="mt-8 text-center">
+        <Button
+          onClick={() => {
+            const element = document.createElement('a');
+            const file = new Blob([listData?.content || ''], { type: 'text/markdown' });
+            element.href = URL.createObjectURL(file);
+            element.download = `${listData?.tripName || 'packing-list'}.md`;
+            element.click();
+          }}
+          className="bg-gradient-to-r from-cyan-400 to-emerald-600 hover:from-cyan-500 hover:to-emerald-700"
+        >
+          <Download className="mr-2 h-5 w-5" />
+          Download List
+        </Button>
+      </div>
+    </div>
+  );
+}
