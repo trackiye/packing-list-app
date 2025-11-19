@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { OpenAIStream, StreamingTextResponse } from 'ai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getListsGenerated, incrementLists, isUserPro } from '@/lib/user-storage';
+import { generateCacheKey, getCachedList, setCachedList } from '@/lib/cache';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
@@ -21,7 +22,52 @@ export async function POST(req: Request) {
     const accommodation = context?.accommodation || '';
     const season = context?.season || '';
 
-    console.log('Generating list for:', { tripNameFinal, destinationFinal, durationFinal, accommodation, season });
+    // Generate cache key
+    const cacheKey = generateCacheKey(
+      destinationFinal,
+      durationFinal,
+      accommodation,
+      season
+    );
+
+    // Check cache first
+    const cached = await getCachedList(cacheKey);
+    
+    if (cached) {
+      console.log('🚀 Cache HIT - Instant response!');
+      
+      const session = await getServerSession(authOptions);
+      const userId = session?.user ? (session.user as { id?: string }).id : undefined;
+
+      let listsUsed = 0;
+      let isPro = false;
+
+      if (userId) {
+        isPro = await isUserPro(userId);
+        if (!isPro) {
+          await incrementLists(userId);
+        }
+        listsUsed = await getListsGenerated(userId);
+      }
+
+      const listId = `list-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Return cached result immediately (not streaming)
+      return Response.json({
+        listId,
+        content: cached.content,
+        tripName: tripNameFinal,
+        destination: destinationFinal,
+        duration: durationFinal.toString(),
+        listsUsed,
+        isPro,
+        cached: true,
+        success: true
+      });
+    }
+
+    // Not cached - stream from OpenAI
+    console.log('🤖 Cache MISS - Streaming from OpenAI...');
 
     const prompt = `You are a professional travel packing assistant. Create a comprehensive, personalized packing list.
 
@@ -33,61 +79,68 @@ Trip Details:
 ${tripDetails ? `- Additional Info: ${tripDetails}` : ''}
 ${message ? `- User Notes: ${message}` : ''}
 
-IMPORTANT: Start with a brief 1-sentence trip summary describing the trip (e.g., "A week-long beach vacation in tropical Hawaii with resort accommodation").
+IMPORTANT: Start with a brief 1-sentence trip summary describing the trip.
 
 Then organize the packing list by categories (e.g., Clothing, Electronics, Documents, Toiletries, etc.).
 Format with clear category headers (use ## for headers) and bullet points (use - for items).
-Be specific and practical. Consider the destination's climate, culture, accommodation type, and trip duration.`;
+Be specific and practical.`;
 
-    console.log('Calling OpenAI...');
+    const session = await getServerSession(authOptions);
+    const userId = session?.user ? (session.user as { id?: string }).id : undefined;
 
-    const completion = await openai.chat.completions.create({
+    let isPro = false;
+    if (userId) {
+      isPro = await isUserPro(userId);
+    }
+
+    // Start streaming response
+    const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      stream: true,
       messages: [
-        { role: 'system', content: 'You are a professional travel packing assistant. Always start responses with a brief trip summary sentence.' },
+        { role: 'system', content: 'You are a professional travel packing assistant.' },
         { role: 'user', content: prompt }
       ],
       temperature: 0.7,
       max_tokens: 1000,
     });
 
-    const text = completion.choices[0]?.message?.content || 'Error generating list';
-    console.log('✅ Generated list:', text.substring(0, 200) + '...');
+    // Convert to streaming response
+    const stream = OpenAIStream(response, {
+      async onCompletion(completion) {
+        console.log('✅ Stream completed, caching result...');
+        
+        // Cache the completed result
+        await setCachedList(cacheKey, {
+          content: completion,
+          tripName: tripNameFinal,
+          destination: destinationFinal,
+          duration: durationFinal.toString(),
+          timestamp: Date.now(),
+        });
 
-    const listId = `list-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-    const session = await getServerSession(authOptions);
-    const userId = session?.user?.id;
-
-    if (userId) {
-      const proStatus = await isUserPro(userId);
-      if (!proStatus) {
-        const currentCount = await getListsGenerated(userId);
-        console.log(`User ${userId} has generated ${currentCount} lists`);
-        await incrementLists(userId);
-      }
-    }
-
-    return NextResponse.json({
-      listId,
-      content: text,
-      tripName: tripNameFinal,
-      destination: destinationFinal,
-      duration: durationFinal.toString(),
-      listsRemaining: userId ? (await isUserPro(userId) ? 999 : MAX_FREE_LISTS - (await getListsGenerated(userId))) : null,
-      success: true
+        // Increment usage
+        if (userId && !isPro) {
+          await incrementLists(userId);
+        }
+      },
     });
+
+    return new StreamingTextResponse(stream, {
+      headers: {
+        'X-List-Id': `list-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        'X-Trip-Name': tripNameFinal,
+        'X-Destination': destinationFinal,
+        'X-Duration': durationFinal.toString(),
+        'X-Is-Pro': isPro.toString(),
+      },
+    });
+
   } catch (error) {
     console.error('API Error:', error);
     if (error instanceof Error) {
-      if (error.message.includes('API key')) {
-        return NextResponse.json(
-          { error: 'OpenAI API key not configured.' },
-          { status: 500 }
-        );
-      }
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return Response.json({ error: error.message }, { status: 500 });
     }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

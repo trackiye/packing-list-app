@@ -5,7 +5,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: true, // Temporarily ignore to see all issues
+    ignoreBuildErrors: true,
   },
   experimental: {
     clientTraceMetadata: ["baggage", "sentry-trace", "traceparent"],
@@ -17,6 +17,9 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+  },
+  env: {
+    NEXT_PUBLIC_AMAZON_AFFILIATE_TAG: process.env.AMAZON_AFFILIATE_TAG || 'trackiye-20',
   },
 };
 

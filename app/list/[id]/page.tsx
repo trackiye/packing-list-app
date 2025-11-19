@@ -11,6 +11,9 @@ import EmailCapture from '@/components/EmailCapture';
 import StickyProgress from '@/components/StickyProgress';
 import AmazonShopping from '@/components/AmazonShopping';
 import UpgradeModal from '@/components/UpgradeModal';
+import PaywallModal from '@/components/PaywallModal';
+
+const MAX_FREE_LISTS = 3;
 
 export default function ListPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -23,6 +26,7 @@ export default function ListPage({ params }: { params: Promise<{ id: string }> }
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [packedCount, setPackedCount] = useState(0);
   const [showUpgrade, setShowUpgrade] = useState<string | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const isPro = session?.user?.isPro || false;
   const isAuthenticated = status === "authenticated";
@@ -38,6 +42,8 @@ export default function ListPage({ params }: { params: Promise<{ id: string }> }
           const tripName = urlParams.get('tripName') || 'Your Packing List';
           const destination = urlParams.get('destination') || '';
           const duration = urlParams.get('duration') || '';
+          const listsUsed = parseInt(urlParams.get('listsUsed') || '0');
+          const userIsPro = urlParams.get('isPro') === 'true';
           
           const categories = parseContentToCategories(decoded);
           const tripSummary = generateTripSummary(decoded, destination, duration);
@@ -52,8 +58,15 @@ export default function ListPage({ params }: { params: Promise<{ id: string }> }
             content: decoded,
             tripName,
             destination,
-            duration
+            duration,
+            listsUsed,
+            isPro: userIsPro
           });
+
+          // Check if we should show paywall AFTER they sign in
+          if (isAuthenticated && !userIsPro && listsUsed >= MAX_FREE_LISTS) {
+            setShowPaywall(true);
+          }
         } else {
           const response = await fetch(`/api/lists/${id}`);
           if (!response.ok) throw new Error('List not found');
@@ -70,7 +83,7 @@ export default function ListPage({ params }: { params: Promise<{ id: string }> }
     };
 
     fetchList();
-  }, [id]);
+  }, [id, isAuthenticated]);
 
   const generateTripSummary = (content: string, destination: string, duration: string) => {
     const lines = content.split('\n').filter(line => line.trim());
@@ -242,6 +255,7 @@ export default function ListPage({ params }: { params: Promise<{ id: string }> }
       
       <StickyProgress totalItems={getTotalItems()} packedItems={packedCount} />
 
+      {/* Sign-In Wall (shows when not authenticated) */}
       {!isAuthenticated && (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
           <div className="pointer-events-auto glass-strong rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border-2 border-white/20 animate-in fade-in zoom-in-95 duration-500">
@@ -273,7 +287,7 @@ export default function ListPage({ params }: { params: Promise<{ id: string }> }
             <div className="mt-6 space-y-3">
               <div className="flex items-center gap-3 text-white/70 text-sm">
                 <Sparkles className="w-5 h-5 text-purple-400" />
-                <span>Unlimited packing lists</span>
+                <span>3 free packing lists</span>
               </div>
               <div className="flex items-center gap-3 text-white/70 text-sm">
                 <Save className="w-5 h-5 text-pink-400" />
@@ -398,6 +412,15 @@ export default function ListPage({ params }: { params: Promise<{ id: string }> }
         <UpgradeModal
           feature={showUpgrade}
           onClose={() => setShowUpgrade(null)}
+        />
+      )}
+
+      {/* Paywall Modal - Shows AFTER sign-in if limit reached */}
+      {showPaywall && isAuthenticated && (
+        <PaywallModal
+          listsUsed={listData?.listsUsed || MAX_FREE_LISTS}
+          maxFreeLists={MAX_FREE_LISTS}
+          onClose={() => setShowPaywall(false)}
         />
       )}
     </>
