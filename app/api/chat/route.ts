@@ -1,9 +1,14 @@
 import { streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getListsGenerated, incrementLists, isUserPro } from '@/lib/user-storage';
 import { generateCacheKey, getCachedList, setCachedList } from '@/lib/cache';
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  compatibility: 'strict',
+});
 
 const MAX_FREE_LISTS = 3;
 
@@ -18,7 +23,6 @@ export async function POST(req: Request) {
     const accommodation = context?.accommodation || '';
     const season = context?.season || '';
 
-    // Generate cache key
     const cacheKey = generateCacheKey(
       destinationFinal,
       durationFinal,
@@ -26,7 +30,6 @@ export async function POST(req: Request) {
       season
     );
 
-    // Check cache first
     const cached = await getCachedList(cacheKey);
     
     if (cached) {
@@ -61,7 +64,6 @@ export async function POST(req: Request) {
       });
     }
 
-    // Not cached - stream from OpenAI
     console.log('🤖 Cache MISS - Streaming from OpenAI...');
 
     const prompt = `You are a professional travel packing assistant. Create a comprehensive, personalized packing list.
@@ -90,7 +92,6 @@ Be specific and practical.`;
 
     const listId = `list-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Start streaming response
     const result = streamText({
       model: openai('gpt-4o-mini'),
       messages: [
