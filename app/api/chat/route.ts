@@ -1,13 +1,9 @@
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getListsGenerated, incrementLists, isUserPro } from '@/lib/user-storage';
 import { generateCacheKey, getCachedList, setCachedList } from '@/lib/cache';
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 const MAX_FREE_LISTS = 3;
 
@@ -52,7 +48,6 @@ export async function POST(req: Request) {
 
       const listId = `list-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-      // Return cached result immediately (not streaming)
       return Response.json({
         listId,
         content: cached.content,
@@ -93,42 +88,37 @@ Be specific and practical.`;
       isPro = await isUserPro(userId);
     }
 
+    const listId = `list-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
     // Start streaming response
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      stream: true,
+    const result = streamText({
+      model: openai('gpt-4o-mini'),
       messages: [
         { role: 'system', content: 'You are a professional travel packing assistant.' },
         { role: 'user', content: prompt }
       ],
       temperature: 0.7,
-      max_tokens: 1000,
-    });
-
-    // Convert to streaming response
-    const stream = OpenAIStream(response, {
-      async onCompletion(completion) {
+      maxTokens: 1000,
+      async onFinish({ text }) {
         console.log('✅ Stream completed, caching result...');
         
-        // Cache the completed result
         await setCachedList(cacheKey, {
-          content: completion,
+          content: text,
           tripName: tripNameFinal,
           destination: destinationFinal,
           duration: durationFinal.toString(),
           timestamp: Date.now(),
         });
 
-        // Increment usage
         if (userId && !isPro) {
           await incrementLists(userId);
         }
       },
     });
 
-    return new StreamingTextResponse(stream, {
+    return result.toDataStreamResponse({
       headers: {
-        'X-List-Id': `list-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        'X-List-Id': listId,
         'X-Trip-Name': tripNameFinal,
         'X-Destination': destinationFinal,
         'X-Duration': durationFinal.toString(),
